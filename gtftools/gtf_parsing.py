@@ -24,6 +24,37 @@ from six.moves import intern
 
 from .util import memory_usage
 
+"""
+Columns of a GTF file:
+
+    seqname   - name of the chromosome or scaffold; chromosome names
+                without a 'chr' in Ensembl (but sometimes with a 'chr'
+                elsewhere)
+    source    - name of the program that generated this feature, or
+                the data source (database or project name)
+    feature   - feature type name. Current allowed features are
+                {gene, transcript, exon, CDS, Selenocysteine, start_codon,
+                stop_codon and UTR}
+    start     - start position of the feature, with sequence numbering
+                starting at 1.
+    end       - end position of the feature, with sequence numbering
+                starting at 1.
+    score     - a floating point value indiciating the score of a feature
+    strand    - defined as + (forward) or - (reverse).
+    frame     - one of '0', '1' or '2'. Frame indicates the number of base pairs
+                before you encounter a full codon. '0' indicates the feature
+                begins with a whole codon. '1' indicates there is an extra
+                base (the 3rd base of the prior codon) at the start of this feature.
+                '2' indicates there are two extra bases (2nd and 3rd base of the
+                prior exon) before the first codon. All values are given with
+                relation to the 5' end.
+    attribute - a semicolon-separated list of tag-value pairs (separated by a space),
+                providing additional information about each feature. A key can be
+                repeated multiple times.
+
+(from ftp://ftp.ensembl.org/pub/release-75/gtf/homo_sapiens/README)
+"""
+
 def pandas_series_is_biotype(series):
     """
     Hackishly infer whether a Pandas series is either from
@@ -32,179 +63,22 @@ def pandas_series_is_biotype(series):
     """
     return 'protein_coding' in series.values
 
-def read_gtf_as_dict(filename, chunksize=10**5):
+
+def expand_attribute_strings_into_dict(attribute_strings):
     """
-    Parse a GTF into a dictionary mapping column names to lists of values.
+    The last column of GTF has a variable number of key value pairs
+    of the format: "key1 value1; key2 value2;"
 
-    Columns of a GTF file:
+    Parse these into a dictionary mapping each key onto a list of values,
+    where the value is None for any row where the key was missing.
 
-        seqname   - name of the chromosome or scaffold; chromosome names
-                    without a 'chr' in Ensembl (but sometimes with a 'chr'
-                    elsewhere)
-        source    - name of the program that generated this feature, or
-                    the data source (database or project name)
-        feature   - feature type name. Current allowed features are
-                    {gene, transcript, exon, CDS, Selenocysteine, start_codon,
-                    stop_codon and UTR}
-        start     - start position of the feature, with sequence numbering
-                    starting at 1.
-        end       - end position of the feature, with sequence numbering
-                    starting at 1.
-        score     - a floating point value indiciating the score of a feature
-        strand    - defined as + (forward) or - (reverse).
-        frame     - one of '0', '1' or '2'. Frame indicates the number of base pairs
-                    before you encounter a full codon. '0' indicates the feature
-                    begins with a whole codon. '1' indicates there is an extra
-                    base (the 3rd base of the prior codon) at the start of this feature.
-                    '2' indicates there are two extra bases (2nd and 3rd base of the
-                    prior exon) before the first codon. All values are given with
-                    relation to the 5' end.
-        attribute - a semicolon-separated list of tag-value pairs (separated by a space),
-                    providing additional information about each feature. A key can be
-                    repeated multiple times.
-
-    (from ftp://ftp.ensembl.org/pub/release-75/gtf/homo_sapiens/README)
+    Returns OrderedDict of column->value list mappings, in the order they
+    appeared in the attribute strings.
     """
-    if not exists(filename):
-        raise ValueError("GTF file does not exist: %s" % filename)
-
-    logging.debug("Memory usage before GTF parsing: %0.4f MB" % memory_usage())
-
-    if filename.endswith("gz") or filename.endswith("gzip"):
-        def open_gtf(filename):
-            return gzip.open(filename, mode="rt")
-    else:
-        def open_gtf(filename):
-            return open(filename, buffering=chunksize)
-
-    seqname_values = []
-    second_column_values = []
-    feature_values = []
-    start_values = []
-    end_values = []
-    score_values = []
-    strand_values = []
-    frame_values = []
-    attribute_values = []
-
-    for i, line in enumerate(open_gtf(filename)):
-        if line.startswith("#"):
-            continue
-        fields = line.split("\t", 9)
-        assert len(fields) == 9, \
-            "Wrong number of fields %d in %s" % (len(fields), filename)
-        # GTF columns:
-        # 1) seqname: str ("1", "X", "chrX", etc...)
-        # 2) second_column : str
-        #      Different versions of GTF use second column as of:
-        #      (a) gene biotype
-        #      (b) transcript biotype
-        #      (c) the annotation source
-        #      See: https://www.biostars.org/p/120306/#120321
-        # 3) feature : str ("gene", "transcript", &c)
-        # 4) start : int
-        # 5) end : int
-        # 6) score : float or "."
-        # 7) strand : "+", "-", or "."
-        # 8) frame : 0, 1, 2 or "."
-        # 9) attribute : key-value pairs separated by semicolons
-        # (see more complete description in docstring at top of file)
-        seq, second, feature, start, end, score, strand, frame, attr = fields
-        seqname_values.append(intern(seq))
-        second_column_values.append(intern(str(second)))
-        feature_values.append(intern(str(feature)))
-        start_values.append(int(start))
-        end_values.append(int(end))
-        score_values.append(np.nan if score == "." else float(score))
-        strand_values.append(intern(str(strand)))
-        frame_values.append(intern(str(frame)))
-        attribute_values.append(attr)
-
-    logging.debug("Memory usage after GTF parsing: %0.4f MB" % memory_usage())
-    return {
-        "seqname": seqname_values,
-        "source": second_column_values,
-        "feature": feature_values,
-        "start": start_values,
-        "end": end_values,
-        "score": score_values,
-        "strand": strand_values,
-        "frame": frame_values,
-        "attribute": attribute_values,
-    }
-
-REQUIRED_COLUMNS = [
-    "seqname",
-    "source",
-    "feature",
-    "start",
-    "end",
-    "score",
-    "strand",
-    "frame",
-    "attribute",
-]
-
-def read_gtf_as_dataframe(
-        filename,
-        chunksize=10**5,
-        expand_columns=True,
-        infer_second_column=True):
-    """
-    Parse GTF and convert it to a DataFrame.
-
-    Parameters
-    ----------
-    filename : str
-
-    chunksize : int
-
-    expand_columns : bool
-
-    infer_second_column : bool
-    """
-    columns = read_gtf_as_dict
-    df = pd.DataFrame({})
-    for column_name in REQUIRED_COLUMNS:
-        column = columns[column_name]
-        if column_name in {"start", "end"}:
-            column = np.array(column, dtype="int64")
-        elif column_name == "score":
-            column = np.array(column, dtype="float32")
-
-        if column_name == "attribute" and expand_columns:
-            pass
-        else:
-            df[column_name] = column
-        del columns[column_name]
-
-    logging.debug("Memory usage after DataFrame construction: %0.4f MB" % (
-        memory_usage(),))
-
-    # very old GTF files use the second column to store the gene biotype
-    # others use it to store the transcript biotype and
-    # anything beyond release 77+ will use it to store
-    # the source of the annotation (e.g. "havana")
-    if infer_second_column and pandas_series_is_biotype(df['second_column']):
-        # patch this later to either 'transcript_biotype' or 'gene_biotype'
-        # depending on what other annotations are present
-        column_name = 'biotype'
-    else:
-        column_name = 'source'
-    df[column_name] = df["second_column"]
-    del df["second_column"]
-    return df
-
-
-def _extend_with_attributes(df):
     logging.debug(
         "Memory usage before expanding GTF attributes: %0.4f MB" % (
             memory_usage(),))
-    n = len(df)
-
-    attribute_strings = df["attribute"]
-    # remove attribute strings from dataframe we're going to return
-    del df["attribute"]
+    n = len(attribute_strings)
 
     extra_columns = {}
     column_order = []
@@ -220,11 +94,7 @@ def _extend_with_attributes(df):
         # TODO: implement a proper parser!
         (i, kv.strip().split(" ", 2)[:2])
         for (i, attribute_string) in enumerate(attribute_strings)
-        # Catch mistaken semicolons by replacing "xyz;" with "xyz"
-        # Required to do this since the GTF for Ensembl 78 has
-        # gene_name = "PRAMEF6;"
-        # transcript_name = "PRAMEF6;-201"
-        for kv in attribute_string.replace(';\"', '\"').replace(";-", "-").split(";")
+        for kv in attribute_string.split(";")
         # need at least 3 chars for minimal entry like 'k v'
         if len(kv) > 2 and " " in kv
     )
@@ -265,16 +135,174 @@ def _extend_with_attributes(df):
 
         column[i] = value
 
-    logging.info("Extracted GTF attributes: %s" % column_order)
-    # add columns to the DataFrame in the order they appeared
-    for column_name in column_order:
-        column = extra_columns[column_name]
-        df[column_name] = column
-        del extra_columns[column_name]
     logging.debug(
         "Memory usage after expanding GTF attributes: %0.4f MB" % (
             memory_usage(),))
+    logging.info("Extracted GTF attributes: %s" % column_order)
+    return OrderedDict(
+        (column_name, extra_columns[column_name])
+        for column_name in column_order)
+
+def read_gtf_as_dict(filename, expand_attribute_column=True):
+    """
+    Parse a GTF into a dictionary mapping column names to lists of values.
+
+    Parameters
+    ----------
+    filename : str
+        Name of GTF file (may be gzip compressed)
+
+    expand_attribute_column : bool
+        Replace strings of semi-colon separated key-value values in the
+        'attribute' column with one column per distinct key, with a list of
+        values for each row (using None for rows where key didn't occur).
+    """
+    if not exists(filename):
+        raise ValueError("GTF file does not exist: %s" % filename)
+
+    logging.debug("Memory usage before GTF parsing: %0.4f MB" % memory_usage())
+
+    if filename.endswith("gz") or filename.endswith("gzip"):
+        def open_gtf(filename):
+            return gzip.open(filename, mode="rt")
+    else:
+        def open_gtf(filename):
+            return open(filename)
+
+    seqname_values = []
+    second_column_values = []
+    feature_values = []
+    start_values = []
+    end_values = []
+    score_values = []
+    strand_values = []
+    frame_values = []
+    attribute_values = []
+
+    # default value for missing scores
+    NaN = np.nan
+
+    for i, line in enumerate(open_gtf(filename)):
+        if line.startswith("#"):
+            continue
+        fields = line.split("\t", 9)
+        assert len(fields) == 9, \
+            "Wrong number of fields %d in %s" % (len(fields), filename)
+        # GTF columns:
+        # 1) seqname: str ("1", "X", "chrX", etc...)
+        # 2) source : str
+        #      Different versions of GTF use second column as of:
+        #      (a) gene biotype
+        #      (b) transcript biotype
+        #      (c) the annotation source
+        #      See: https://www.biostars.org/p/120306/#120321
+        # 3) feature : str ("gene", "transcript", &c)
+        # 4) start : int
+        # 5) end : int
+        # 6) score : float or "."
+        # 7) strand : "+", "-", or "."
+        # 8) frame : 0, 1, 2 or "."
+        # 9) attribute : key-value pairs separated by semicolons
+        # (see more complete description in docstring at top of file)
+        seq, source, feature, start, end, score, strand, frame, attr = fields
+
+        seqname_values.append(intern(str(seq)))
+        source_values.append(intern(str(source)))
+        feature_values.append(intern(str(feature)))
+        start_values.append(int(start))
+        end_values.append(int(end))
+        score_values.append(NaN if score == "." else float(score))
+        strand_values.append(intern(str(strand)))
+        frame_values.append(intern(str(frame)))
+
+        # Catch mistaken semicolons by replacing "xyz;" with "xyz"
+        # Required to do this since the Ensembl GTF for Ensembl release 78 has
+        # gene_name = "PRAMEF6;"
+        # transcript_name = "PRAMEF6;-201"
+        attribute_values.append(attr.replace(';\"', '\"').replace(";-", "-"))
+    logging.debug("Memory usage after GTF parsing: %0.4f MB" % memory_usage())
+    result = OrderedDict(
+        seqname=seqname_values,
+        source=second_column_values,
+        feature=feature_values,
+        start=start_values,
+        end=end_values,
+        score=score_values,
+        strand=strand_values,
+        frame=frame_values)
+
+    if expand_attribute_column:
+        result.update(expand_attribute_strings_into_dict(attribute_values))
+    else:
+        result["attribute"] = attribute_values
+    return result
+
+
+REQUIRED_COLUMNS = [
+    "seqname",
+    "source",
+    "feature",
+    "start",
+    "end",
+    "score",
+    "strand",
+    "frame",
+    "attribute",
+]
+
+def read_gtf_as_dataframe(
+        filename,
+        line_chunksize=10**5,
+        expand_columns=True,
+        infer_second_column=True,
+        expand_attribute_column=True):
+    """
+    Parse GTF and convert it to a DataFrame.
+
+    Parameters
+    ----------
+    filename : str
+
+    chunksize : int
+
+    expand_columns : bool
+
+    infer_second_column : bool
+    """
+    columns = read_gtf_as_dict(
+        filename=filename,
+        chunksize)
+    df = pd.DataFrame({})
+    for column_name in REQUIRED_COLUMNS:
+        column = columns[column_name]
+        if column_name in {"start", "end"}:
+            column = np.array(column, dtype="int64")
+        elif column_name == "score":
+            column = np.array(column, dtype="float32")
+
+        if column_name == "attribute" and expand_columns:
+            pass
+        else:
+            df[column_name] = column
+        del columns[column_name]
+
+    logging.debug("Memory usage after DataFrame construction: %0.4f MB" % (
+        memory_usage(),))
+
+    # very old GTF files use the second column to store the gene biotype
+    # others use it to store the transcript biotype and
+    # anything beyond release 77+ will use it to store
+    # the source of the annotation (e.g. "havana")
+    if infer_second_column and pandas_series_is_biotype(df['second_column']):
+        # patch this later to either 'transcript_biotype' or 'gene_biotype'
+        # depending on what other annotations are present
+        column_name = 'biotype'
+    else:
+        column_name = 'source'
+    df[column_name] = df["second_column"]
+    del df["second_column"]
     return df
+
 
 # In addition to the required 8 columns and IDs of genes & transcripts,
 # there might also be annotations like 'transcript_biotype' but these aren't
