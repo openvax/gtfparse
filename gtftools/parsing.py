@@ -16,13 +16,14 @@ from __future__ import print_function, division, absolute_import
 import logging
 from os.path import exists
 import gzip
-
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
 from six.moves import intern
 
 from .util import memory_usage
+from .expand_attributes import expand_attribute_strings_into_dict
 
 """
 Columns of a GTF file:
@@ -32,9 +33,17 @@ Columns of a GTF file:
                 elsewhere)
     source    - name of the program that generated this feature, or
                 the data source (database or project name)
-    feature   - feature type name. Current allowed features are
-                {gene, transcript, exon, CDS, Selenocysteine, start_codon,
-                stop_codon and UTR}
+    feature   - feature type name.
+                Features currently in Ensembl GTFs:
+                    gene
+                    transcript
+                    exon
+                    CDS
+                    Selenocysteine
+                    start_codon
+                    stop_codon
+                    UTR
+                Older Ensembl releases may be missing some of these features.
     start     - start position of the feature, with sequence numbering
                 starting at 1.
     end       - end position of the feature, with sequence numbering
@@ -64,88 +73,9 @@ def pandas_series_is_biotype(series):
     return 'protein_coding' in series.values
 
 
-def expand_attribute_strings_into_dict(attribute_strings):
-    """
-    The last column of GTF has a variable number of key value pairs
-    of the format: "key1 value1; key2 value2;"
-
-    Parse these into a dictionary mapping each key onto a list of values,
-    where the value is None for any row where the key was missing.
-
-    Returns OrderedDict of column->value list mappings, in the order they
-    appeared in the attribute strings.
-    """
-    logging.debug(
-        "Memory usage before expanding GTF attributes: %0.4f MB" % (
-            memory_usage(),))
-    n = len(attribute_strings)
-
-    extra_columns = {}
-    column_order = []
-
-    # Split the semi-colon separated attributes in the last column of a GTF
-    # into a list of (key, value) pairs.
-    kv_generator = (
-        # We're slicing the first two elements out of split() because
-        # Ensembl release 79 added values like:
-        #   transcript_support_level "1 (assigned to previous version 5)";
-        # ...which gets mangled by splitting on spaces.
-        #
-        # TODO: implement a proper parser!
-        (i, kv.strip().split(" ", 2)[:2])
-        for (i, attribute_string) in enumerate(attribute_strings)
-        for kv in attribute_string.split(";")
-        # need at least 3 chars for minimal entry like 'k v'
-        if len(kv) > 2 and " " in kv
-    )
-
-    #
-    # SOME NOTES ABOUT THE BIZARRE STRING INTERNING GOING ON BELOW
-    #
-    # While parsing millions of repeated strings (e.g. "gene_id" and "TP53"),
-    # we can save a lot of memory by making sure there's only one string
-    # object per unique string. The canonical way to do this is using
-    # the 'intern' function. One problem is that Py2 won't let you intern
-    # unicode objects, so to get around this we call intern(str(...)).
-    #
-    # It also turns out to be faster to check interned strings ourselves
-    # using a local dictionary, hence the two dictionaries below
-    # and pair of try/except blocks in the loop.
-    column_interned_strings = {}
-    value_interned_strings = {}
-
-    for i, (column_name, value) in kv_generator:
-        try:
-            column_name = column_interned_strings[column_name]
-            column = extra_columns[column_name]
-        except KeyError:
-            column_name = intern(str(column_name))
-            column_interned_strings[column_name] = column_name
-            column = [""] * n
-            extra_columns[column_name] = column
-            column_order.append(column_name)
-
-        value = value.replace('\"', "") if '\"' in value else value
-
-        try:
-            value = value_interned_strings[value]
-        except KeyError:
-            value = intern(str(value))
-            value_interned_strings[value] = value
-
-        column[i] = value
-
-    logging.debug(
-        "Memory usage after expanding GTF attributes: %0.4f MB" % (
-            memory_usage(),))
-    logging.info("Extracted GTF attributes: %s" % column_order)
-    return OrderedDict(
-        (column_name, extra_columns[column_name])
-        for column_name in column_order)
-
 def read_gtf_as_dict(filename, expand_attribute_column=True):
     """
-    Parse a GTF into a dictionary mapping column names to lists of values.
+    Parse a GTF into a dictionary mapping column names to sequences of values.
 
     Parameters
     ----------
@@ -170,7 +100,7 @@ def read_gtf_as_dict(filename, expand_attribute_column=True):
             return open(filename)
 
     seqname_values = []
-    second_column_values = []
+    source_values = []
     feature_values = []
     start_values = []
     end_values = []
@@ -223,11 +153,11 @@ def read_gtf_as_dict(filename, expand_attribute_column=True):
     logging.debug("Memory usage after GTF parsing: %0.4f MB" % memory_usage())
     result = OrderedDict(
         seqname=seqname_values,
-        source=second_column_values,
+        source=source_values,
         feature=feature_values,
-        start=start_values,
-        end=end_values,
-        score=score_values,
+        start=np.array(start_values, dtype=np.int64),
+        end=np.array(end_values, dtype=np.int64),
+        score=np.array(score_values, dtype=np.float32),
         strand=strand_values,
         frame=frame_values)
 
@@ -252,10 +182,8 @@ REQUIRED_COLUMNS = [
 
 def read_gtf_as_dataframe(
         filename,
-        line_chunksize=10**5,
-        expand_columns=True,
-        infer_second_column=True,
-        expand_attribute_column=True):
+        expand_attribute_column=True,
+        infer_second_column=True):
     """
     Parse GTF and convert it to a DataFrame.
 
@@ -263,28 +191,20 @@ def read_gtf_as_dataframe(
     ----------
     filename : str
 
-    chunksize : int
-
-    expand_columns : bool
+    expand_attribute_column : bool
 
     infer_second_column : bool
     """
-    columns = read_gtf_as_dict(
+    column_dict = read_gtf_as_dict(
         filename=filename,
-        chunksize)
-    df = pd.DataFrame({})
-    for column_name in REQUIRED_COLUMNS:
-        column = columns[column_name]
-        if column_name in {"start", "end"}:
-            column = np.array(column, dtype="int64")
-        elif column_name == "score":
-            column = np.array(column, dtype="float32")
+        expand_attribute_column=expand_attribute_column)
 
-        if column_name == "attribute" and expand_columns:
-            pass
-        else:
-            df[column_name] = column
-        del columns[column_name]
+    # add columns one at a time so we can remove potentially duplicated data
+    # from the dictionary, saving on memory usage
+    df = pd.DataFrame({})
+    for column_name, column_values in column_dict.items():
+        df[column_name] = column_values
+        del column_dict[column_name]
 
     logging.debug("Memory usage after DataFrame construction: %0.4f MB" % (
         memory_usage(),))
@@ -380,16 +300,9 @@ def reconstruct_transcript_rows(df):
     return pd.concat([df, transcripts_df], ignore_index=True)
 
 def load_gtf_as_dataframe(filename):
-    logging.info("Reading GTF %s into DataFrame", filename)
-    df = read_gtf_as_dataframe(filename)
-    logging.info(
-        "Extracting attributes for %d entries in GTF DataFrame", len(df))
-    df = _extend_with_attributes(df)
-
     # due to the annoying ambiguity of the second GTF column,
     # figure out if an older GTF's biotype is actually the gene_biotype
     # or transcript_biotype
-
     if 'biotype' in df.columns:
         assert 'transcript_biotype' not in df.columns, \
             "Inferred 2nd column as biotype but also found transcript_biotype"
