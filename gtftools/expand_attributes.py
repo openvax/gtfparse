@@ -21,13 +21,23 @@ from .util import memory_usage
 
 def expand_attribute_strings(
         attribute_strings,
-        quote_char='\"'):
+        quote_char='\"',
+        missing_value=""):
     """
     The last column of GTF has a variable number of key value pairs
     of the format: "key1 value1; key2 value2;"
-
     Parse these into a dictionary mapping each key onto a list of values,
     where the value is None for any row where the key was missing.
+
+    Parameters
+    ----------
+    attribute_strings : list of str
+
+    quote_char : str
+        Quote character to remove from values
+
+    missing_value : any
+        If an attribute is missing from a row, give it this value.
 
     Returns OrderedDict of column->value list mappings, in the order they
     appeared in the attribute strings.
@@ -78,7 +88,7 @@ def expand_attribute_strings(
         except KeyError:
             column_name = intern(str(column_name))
             column_interned_strings[column_name] = column_name
-            column = [""] * n
+            column = [missing_value] * n
             extra_columns[column_name] = column
             column_order.append(column_name)
 
