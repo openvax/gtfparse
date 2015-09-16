@@ -12,14 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .attribute_parsing import expand_attribute_strings
-from .line_parsing import parse_gtf_lines
-from .required_columns import REQUIRED_COLUMNS
-from .parsing_error import ParsingError
-
-__all__ = [
-    "expand_attribute_strings",
-    "parse_gtf_lines",
-    "REQUIRED_COLUMNS",
-    "ParsingError"
-]
+class ParsingError(Exception):
+    pass

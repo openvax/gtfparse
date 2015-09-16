@@ -23,46 +23,8 @@ import pandas as pd
 from six.moves import intern
 
 from .util import memory_usage
-from .expand_attributes import expand_attribute_strings_into_dict
+from .line_parsing import parse_gtf_lines
 
-"""
-Columns of a GTF file:
-
-    seqname   - name of the chromosome or scaffold; chromosome names
-                without a 'chr' in Ensembl (but sometimes with a 'chr'
-                elsewhere)
-    source    - name of the program that generated this feature, or
-                the data source (database or project name)
-    feature   - feature type name.
-                Features currently in Ensembl GTFs:
-                    gene
-                    transcript
-                    exon
-                    CDS
-                    Selenocysteine
-                    start_codon
-                    stop_codon
-                    UTR
-                Older Ensembl releases may be missing some of these features.
-    start     - start position of the feature, with sequence numbering
-                starting at 1.
-    end       - end position of the feature, with sequence numbering
-                starting at 1.
-    score     - a floating point value indiciating the score of a feature
-    strand    - defined as + (forward) or - (reverse).
-    frame     - one of '0', '1' or '2'. Frame indicates the number of base pairs
-                before you encounter a full codon. '0' indicates the feature
-                begins with a whole codon. '1' indicates there is an extra
-                base (the 3rd base of the prior codon) at the start of this feature.
-                '2' indicates there are two extra bases (2nd and 3rd base of the
-                prior exon) before the first codon. All values are given with
-                relation to the 5' end.
-    attribute - a semicolon-separated list of tag-value pairs (separated by a space),
-                providing additional information about each feature. A key can be
-                repeated multiple times.
-
-(from ftp://ftp.ensembl.org/pub/release-75/gtf/homo_sapiens/README)
-"""
 
 def pandas_series_is_biotype(series):
     """
@@ -90,83 +52,16 @@ def read_gtf_as_dict(filename, expand_attribute_column=True):
     if not exists(filename):
         raise ValueError("GTF file does not exist: %s" % filename)
 
-    logging.debug("Memory usage before GTF parsing: %0.4f MB" % memory_usage())
-
     if filename.endswith("gz") or filename.endswith("gzip"):
-        def open_gtf(filename):
-            return gzip.open(filename, mode="rt")
+        with gzip.open(filename, mode="rt") as f:
+            return parse_gtf_lines(
+                lines=f,
+                expand_attribute_column=expand_attribute_column)
     else:
-        def open_gtf(filename):
-            return open(filename)
-
-    seqname_values = []
-    source_values = []
-    feature_values = []
-    start_values = []
-    end_values = []
-    score_values = []
-    strand_values = []
-    frame_values = []
-    attribute_values = []
-
-    # default value for missing scores
-    NaN = np.nan
-
-    for i, line in enumerate(open_gtf(filename)):
-        if line.startswith("#"):
-            continue
-        fields = line.split("\t", 9)
-        assert len(fields) == 9, \
-            "Wrong number of fields %d in %s" % (len(fields), filename)
-        # GTF columns:
-        # 1) seqname: str ("1", "X", "chrX", etc...)
-        # 2) source : str
-        #      Different versions of GTF use second column as of:
-        #      (a) gene biotype
-        #      (b) transcript biotype
-        #      (c) the annotation source
-        #      See: https://www.biostars.org/p/120306/#120321
-        # 3) feature : str ("gene", "transcript", &c)
-        # 4) start : int
-        # 5) end : int
-        # 6) score : float or "."
-        # 7) strand : "+", "-", or "."
-        # 8) frame : 0, 1, 2 or "."
-        # 9) attribute : key-value pairs separated by semicolons
-        # (see more complete description in docstring at top of file)
-        seq, source, feature, start, end, score, strand, frame, attr = fields
-
-        seqname_values.append(intern(str(seq)))
-        source_values.append(intern(str(source)))
-        feature_values.append(intern(str(feature)))
-        start_values.append(int(start))
-        end_values.append(int(end))
-        score_values.append(NaN if score == "." else float(score))
-        strand_values.append(intern(str(strand)))
-        frame_values.append(intern(str(frame)))
-
-        # Catch mistaken semicolons by replacing "xyz;" with "xyz"
-        # Required to do this since the Ensembl GTF for Ensembl release 78 has
-        # gene_name = "PRAMEF6;"
-        # transcript_name = "PRAMEF6;-201"
-        attribute_values.append(attr.replace(';\"', '\"').replace(";-", "-"))
-    logging.debug("Memory usage after GTF parsing: %0.4f MB" % memory_usage())
-    result = OrderedDict(
-        seqname=seqname_values,
-        source=source_values,
-        feature=feature_values,
-        start=np.array(start_values, dtype=np.int64),
-        end=np.array(end_values, dtype=np.int64),
-        score=np.array(score_values, dtype=np.float32),
-        strand=strand_values,
-        frame=frame_values)
-
-    if expand_attribute_column:
-        result.update(expand_attribute_strings_into_dict(attribute_values))
-    else:
-        result["attribute"] = attribute_values
-    return result
-
+        with open(filename) as f:
+            return parse_gtf_lines(
+                lines=f,
+                expand_attribute_column=expand_attribute_column)
 
 REQUIRED_COLUMNS = [
     "seqname",
