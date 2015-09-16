@@ -15,9 +15,13 @@
 import logging
 from collections import OrderedDict
 
+from six.moves import intern
+
 from .util import memory_usage
 
-def expand_attribute_strings_into_dict(attribute_strings):
+def expand_attribute_strings(
+        attribute_strings,
+        quote_char='\"'):
     """
     The last column of GTF has a variable number of key value pairs
     of the format: "key1 value1; key2 value2;"
@@ -78,7 +82,7 @@ def expand_attribute_strings_into_dict(attribute_strings):
             extra_columns[column_name] = column
             column_order.append(column_name)
 
-        value = value.replace('\"', "") if '\"' in value else value
+        value = value.replace(quote_char, "") if quote_char in value else value
 
         try:
             value = value_interned_strings[value]
