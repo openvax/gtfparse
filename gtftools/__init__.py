@@ -16,10 +16,13 @@ from .attribute_parsing import expand_attribute_strings
 from .line_parsing import parse_gtf_lines
 from .required_columns import REQUIRED_COLUMNS
 from .parsing_error import ParsingError
+from .load_gtf import load_gtf_as_dataframe, load_gtf_as_dict
 
 __all__ = [
     "expand_attribute_strings",
     "parse_gtf_lines",
     "REQUIRED_COLUMNS",
-    "ParsingError"
+    "ParsingError",
+    "load_gtf_as_dataframe",
+    "load_gtf_as_dict",
 ]
