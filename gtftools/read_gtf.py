@@ -26,7 +26,7 @@ from .util import memory_usage
 from .line_parsing import parse_gtf_lines
 
 
-def load_gtf_as_dict(
+def read_gtf_as_dict(
         filename,
         expand_attribute_column=True,
         infer_biotype_column=False):
@@ -77,10 +77,10 @@ def load_gtf_as_dict(
 
     return result_dict
 
-def load_gtf_as_dataframe(
+def read_gtf_as_dataframe(
         filename,
         expand_attribute_column=True,
-        infer_biotype_columns=False):
+        infer_biotype_column=False):
     """
     Parse GTF and convert it to a DataFrame.
 
@@ -94,7 +94,7 @@ def load_gtf_as_dataframe(
         'attribute' column with one column per distinct key, with a list of
         values for each row (using None for rows where key didn't occur).
 
-    infer_biotype_columns : bool
+    infer_biotype_column : bool
         Due to the annoying ambiguity of the second GTF column across multiple
         Ensembl releases, figure out if an older GTF's source column is actually
         the gene_biotype or transcript_biotype.
@@ -107,9 +107,9 @@ def load_gtf_as_dataframe(
     # add columns one at a time so we can remove potentially duplicated data
     # from the dictionary, saving on memory usage
     df = pd.DataFrame({})
-    for column_name, column_values in column_dict.items():
+    for column_name, column_values in gtf_dict.items():
         df[column_name] = column_values
-        del column_dict[column_name]
+        del gtf_dict[column_name]
 
     logging.debug("Memory usage after DataFrame construction: %0.4f MB" % (
         memory_usage(),))
