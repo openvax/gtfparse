@@ -53,8 +53,7 @@ def test_parse_gtf_lines_error_too_many_fields():
     with assert_raises(ParsingError):
         parse_gtf_lines(bad_gtf_lines)
 
-
-def test_parse_gtf_lines_error_too_many_fields():
+def test_parse_gtf_lines_error_too_few_fields():
     bad_gtf_lines = [line.replace("\t", " ") for line in gtf_lines]
     with assert_raises(ParsingError):
         parse_gtf_lines(bad_gtf_lines)

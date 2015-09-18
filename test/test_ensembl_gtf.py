@@ -40,8 +40,7 @@ EXPECTED_GENE_NAMES = {
     'RP11-34P13.9', 'WASH7P', 'RP4-669L17.2'
 }
 
-
-def test_ensembl_gtf_columns():
+def test_ensembl_gtf_gene_names():
     df = read_gtf_as_dataframe(ENSEMBL_GTF_PATH)
     gene_names = set(df["gene_name"])
     assert gene_names == EXPECTED_GENE_NAMES, \
