@@ -1,7 +1,8 @@
 from gtftools import read_gtf_as_dict, read_gtf_as_dataframe
 import numpy as np
+from data import data_path
 
-B16_GTF_PATH = "B16.stringtie.head.gtf"
+B16_GTF_PATH = data_path("B16.stringtie.head.gtf")
 
 def _check_required_columns(gtf_dict):
     assert "feature" in gtf_dict, "Expected column named 'feature' in StringTie GTF"
