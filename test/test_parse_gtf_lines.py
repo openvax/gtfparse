@@ -50,10 +50,12 @@ def test_parse_gtf_lines_without_expand_attributes():
 
 def test_parse_gtf_lines_error_too_many_fields():
     bad_gtf_lines = [line.replace(" ", "\t") for line in gtf_lines]
+    # pylint: disable=no-value-for-parameter
     with assert_raises(ParsingError):
         parse_gtf_lines(bad_gtf_lines)
 
 def test_parse_gtf_lines_error_too_few_fields():
     bad_gtf_lines = [line.replace("\t", " ") for line in gtf_lines]
+    # pylint: disable=no-value-for-parameter
     with assert_raises(ParsingError):
         parse_gtf_lines(bad_gtf_lines)
