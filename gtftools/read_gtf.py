@@ -30,7 +30,7 @@ def read_gtf_as_dict(
         filename,
         expand_attribute_column=True,
         infer_biotype_column=False,
-        column_types={}):
+        column_converters={}):
     """
     Parse a GTF into a dictionary mapping column names to sequences of values.
 
@@ -49,9 +49,10 @@ def read_gtf_as_dict(
         Ensembl releases, figure out if an older GTF's source column is actually
         the gene_biotype or transcript_biotype.
 
-    column_types : dict, optional
-        Dictionary mapping column names to Python types. Will replace empty
-        strings to None and otherwise passes them to given conversion function.
+    column_converters : dict, optional
+        Dictionary mapping column names to conversion functions. Will replace
+        empty strings with None and otherwise passes them to given conversion
+        function.
     """
     if not exists(filename):
         raise ValueError("GTF file does not exist: %s" % filename)
@@ -67,7 +68,7 @@ def read_gtf_as_dict(
                 lines=f,
                 expand_attribute_column=expand_attribute_column)
 
-    for column_name, column_type in column_types.items():
+    for column_name, column_type in column_converters.items():
         result_dict[column_name] = [
             column_type(string_value) if len(string_value) else None
             for string_value
@@ -93,7 +94,7 @@ def read_gtf_as_dataframe(
         filename,
         expand_attribute_column=True,
         infer_biotype_column=False,
-        column_types={}):
+        column_converters={}):
     """
     Parse GTF and convert it to a DataFrame.
 
@@ -112,15 +113,16 @@ def read_gtf_as_dataframe(
         Ensembl releases, figure out if an older GTF's source column is actually
         the gene_biotype or transcript_biotype.
 
-    column_types : dict, optional
-        Dictionary mapping column names to Python types. Will replace empty
-        strings to None and otherwise passes them to given conversion function.
+    column_converters : dict, optional
+        Dictionary mapping column names to conversion functions. Will replace
+        empty strings with None and otherwise passes them to given conversion
+        function.
     """
     gtf_dict = read_gtf_as_dict(
         filename=filename,
         expand_attribute_column=expand_attribute_column,
         infer_biotype_column=infer_biotype_column,
-        column_types=column_types)
+        column_converters=column_converters)
 
     # add columns one at a time so we can remove potentially duplicated data
     # from the dictionary, saving on memory usage

@@ -53,13 +53,13 @@ def test_read_stringtie_gtf_as_dataframe():
 
 def test_read_string_gtf_as_dict_float_values():
     gtf_dict = read_gtf_as_dict(B16_GTF_PATH,
-        column_types={"cov": float, "FPKM": float})
+        column_converters={"cov": float, "FPKM": float})
     _check_required_columns(gtf_dict)
     _check_float_cov_and_FPKM(gtf_dict)
 
 def test_read_stringtie_gtf_as_dataframe_float_values():
     gtf_df = read_gtf_as_dataframe(B16_GTF_PATH,
-        column_types={"cov": float, "FPKM": float})
+        column_converters={"cov": float, "FPKM": float})
     _check_required_columns(gtf_df)
     _check_float_cov_and_FPKM(gtf_df)
 
