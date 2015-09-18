@@ -1,4 +1,7 @@
-# gtftools
+[![Build Status](https://travis-ci.org/hammerlab/gtftools.svg?branch=master)](https://travis-ci.org/hammerlab/gtftools) [![Coverage Status](https://coveralls.io/repos/hammerlab/gtftools/badge.svg?branch=master&service=github)](https://coveralls.io/github/hammerlab/gtftools?branch=master)
+
+gtftools
+========
 Parsing tools for GTF (gene transfer format) files.
 
 # Example usage
