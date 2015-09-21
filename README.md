@@ -27,7 +27,7 @@ df_genes_chrY = df_genes[df_genes["seqname"] == "Y"]
 from gtftools import read_gtf_as_dict
 
 
-gtf_dict = read_gtf_as_dict("stringtie-output.gtf")
+gtf_dict = read_gtf_as_dict("stringtie-output.gtf", column_converters={"FPKM": float})
 
 gene_fpkms = {
     gene_name: fpkm
