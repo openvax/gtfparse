@@ -68,7 +68,7 @@ def read_gtf_as_dict(
                 lines=f,
                 expand_attribute_column=expand_attribute_column)
 
-    for column_name, column_type in column_converters.items():
+    for column_name, column_type in list(column_converters.items()):
         result_dict[column_name] = [
             column_type(string_value) if len(string_value) else None
             for string_value
