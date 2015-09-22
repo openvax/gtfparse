@@ -1,6 +1,6 @@
 import numpy as np
 from nose.tools import eq_, assert_raises
-from gtftools import parse_gtf_lines, REQUIRED_COLUMNS, ParsingError
+from gtfparse import parse_gtf_lines, REQUIRED_COLUMNS, ParsingError
 
 gtf_lines = """
 # sample GTF data copied from:

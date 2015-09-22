@@ -38,12 +38,12 @@ except Exception as e:
 
 if __name__ == '__main__':
     setup(
-        name='varcode',
+        name='gtfparse',
         packages=find_packages(),
         version="0.0.1",
         description="GTF Parsing",
         long_description=readme,
-        url="https://github.com/hammerlab/gtftools",
+        url="https://github.com/hammerlab/gtfparse",
         author="Alex Rubinsteyn",
         license="http://www.apache.org/licenses/LICENSE-2.0.html",
         classifiers=[

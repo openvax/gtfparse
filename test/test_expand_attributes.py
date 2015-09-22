@@ -1,4 +1,4 @@
-from gtftools import expand_attribute_strings
+from gtfparse import expand_attribute_strings
 from nose.tools import eq_
 
 def test_attributes_in_quotes():

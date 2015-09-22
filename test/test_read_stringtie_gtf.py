@@ -1,4 +1,4 @@
-from gtftools import read_gtf_as_dict, read_gtf_as_dataframe
+from gtfparse import read_gtf_as_dict, read_gtf_as_dataframe
 import numpy as np
 from data import data_path
 

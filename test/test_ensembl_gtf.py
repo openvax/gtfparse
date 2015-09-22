@@ -1,5 +1,5 @@
 from data import data_path
-from gtftools import read_gtf_as_dataframe
+from gtfparse import read_gtf_as_dataframe
 from nose.tools import eq_
 
 ENSEMBL_GTF_PATH = data_path("ensembl_grch37.head.gtf")
