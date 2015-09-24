@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 from six.moves import intern
 
+from .create_missing_features import create_missing_features
 from .util import memory_usage
 from .line_parsing import parse_gtf_lines
 
@@ -74,7 +75,6 @@ def read_gtf_as_dict(
             for string_value
             in result_dict[column_name]
         ]
-
     # Hackishly infer whether the values in the 'source' column of this GTF
     # are actually representing a biotype by checking for the most common
     # gene_biotype and transcript_biotype value 'protein_coding'
@@ -94,7 +94,8 @@ def read_gtf_as_dataframe(
         filename,
         expand_attribute_column=True,
         infer_biotype_column=False,
-        column_converters={}):
+        column_converters={},
+        create_features_if_missing_dict={}):
     """
     Parse GTF and convert it to a DataFrame.
 
@@ -117,6 +118,11 @@ def read_gtf_as_dataframe(
         Dictionary mapping column names to conversion functions. Will replace
         empty strings with None and otherwise passes them to given conversion
         function.
+
+    create_features_if_missing_dict : dict, optional
+        Create features such as 'gene' from a unique ID such as 'gene_id'
+        associated with existing features in a GTF file. Dictionary
+        maps names of missing features to their unique ID column.
     """
     gtf_dict = read_gtf_as_dict(
         filename=filename,
@@ -127,11 +133,23 @@ def read_gtf_as_dataframe(
     # add columns one at a time so we can remove potentially duplicated data
     # from the dictionary, saving on memory usage
     df = pd.DataFrame({})
-    for column_name, column_values in gtf_dict.items():
+    for column_name, column_values in list(gtf_dict.items()):
         df[column_name] = column_values
         del gtf_dict[column_name]
 
     logging.debug("Memory usage after DataFrame construction: %0.4f MB" % (
         memory_usage(),))
 
+    unique_features = set(df["feature"])
+    # don't try to create features which were already in the GTF
+    create_features_if_missing_dict = {
+        feature_name: groupby_key
+        for (feature_name, groupby_key) in
+        create_features_if_missing_dict.items()
+        if feature_name not in unique_features
+    }
+    if create_features_if_missing_dict:
+        df = create_missing_features(
+            df,
+            feature_name_to_unique_key_dict=create_features_if_missing_dict)
     return df

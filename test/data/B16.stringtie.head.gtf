@@ -1,3 +1,4 @@
+# seqname source feature start end score strand frame attribute
 chr1	StringTie	transcript	4773200	4785726	1000	-	.	gene_id "STRG.1"; transcript_id "STRG.1.1"; reference_id "NM_001177658"; ref_gene_id "Mrpl15"; ref_gene_name "Mrpl15"; cov "6.319414"; FPKM "7.961097";
 chr1	StringTie	exon	4773200	4776801	1000	-	.	gene_id "STRG.1"; transcript_id "STRG.1.1"; exon_number "1"; reference_id "NM_001177658"; ref_gene_id "Mrpl15"; ref_gene_name "Mrpl15"; cov "2.806025";
 chr1	StringTie	transcript	4773200	4785726	1000	-	.	gene_id "STRG.1"; transcript_id "STRG.1.2"; reference_id "NM_025300"; ref_gene_id "Mrpl15"; ref_gene_name "Mrpl15"; cov "2.351110"; FPKM "2.961891";

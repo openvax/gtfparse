@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .attribute_parsing import expand_attribute_strings
+from .create_missing_features import create_missing_features
 from .line_parsing import parse_gtf_lines
 from .required_columns import REQUIRED_COLUMNS
 from .parsing_error import ParsingError
@@ -20,6 +21,7 @@ from .read_gtf import read_gtf_as_dataframe, read_gtf_as_dict
 
 __all__ = [
     "expand_attribute_strings",
+    "create_missing_features",
     "parse_gtf_lines",
     "REQUIRED_COLUMNS",
     "ParsingError",
