@@ -39,7 +39,15 @@ def create_missing_features(dataframe, feature_name_to_unique_key_dict):
     features.
     """
     extra_dataframes = []
-    column_names = dataframe.keys()
+    all_column_names = list(dataframe.keys())
+    # column names for which we have special logic for inferring
+    # their values
+    special_column_names = {"start", "end", "seqname", "featue"}
+    missing_column_names = {
+        column_name
+        for column_name in all_column_names
+        if column_name not in special_column_names
+    }
     unique_features = set(dataframe["feature"])
     for (feature_name, groupby_key) in feature_name_to_unique_key_dict.items():
         if feature_name in unique_features:
@@ -53,26 +61,20 @@ def create_missing_features(dataframe, feature_name_to_unique_key_dict):
         # where possible.
         feature_values = OrderedDict([
             (column_name, [None] * len(groups))
-            for column_name in column_names
+            for column_name in all_column_names
         ])
         for i, (feature_id, group) in enumerate(groups):
-
-            for column_name in column_names:
+            feature_values["start"][i] = group["start"].min()
+            feature_values["end"][i] = group["end"].max()
+            feature_values["seqname"][i] = group["seqname"].irow(0)
+            feature_values["feature"][i] = feature_name
+            for column_name in missing_column_names:
                 # expect that all entries related to a reconstructed featue
                 # are related and are thus within the same interval of
                 # positions on the same chromosome
-                if column_name == "start":
-                    feature_values["start"][i] = group["start"].min()
-                elif column_name == "end":
-                    feature_values["end"][i] = group["end"].max()
-                elif column_name == "seqname":
-                    feature_values["seqname"][i] = group["seqname"].irow(0)
-                elif column_name == "feature":
-                    feature_values["feature"][i] = feature_name
-                else:
-                    unique_values = group[column_name].dropna().unique()
-                    if len(unique_values) == 1:
-                        feature_values[column_name][i] = unique_values[0]
+                unique_values = set(group[column_name].dropna())
+                if len(unique_values) == 1:
+                    feature_values[column_name][i] = unique_values.pop()
 
         extra_dataframes.append(pd.DataFrame(feature_values))
     return pd.concat([dataframe] + extra_dataframes, ignore_index=True)
