@@ -83,12 +83,10 @@ def read_gtf_as_dict(
         # gene_biotype is already present in another column. If it is,
         # the 2nd column is the transcript_biotype (otherwise, it's the
         # gene_biotype)
-        if "gene_biotype" not in result_dict.keys():
+        column_names = set(result_dict.keys())
+        if "gene_biotype" not in column_names:
             result_dict["gene_biotype"] = result_dict["source"]
-            # old Ensembl releases seem to only contain e.g.
-            # coding transcripts for protein_coding genes
-            result_dict["transcript_biotype"] = result_dict["source"]
-        elif "transcript_biotype" not in result_dict.keys():
+        if "transcript_biotype" not in column_names:
             result_dict["transcript_biotype"] = result_dict["source"]
 
     return result_dict
