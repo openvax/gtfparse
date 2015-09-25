@@ -76,14 +76,9 @@ def create_missing_features(
         ])
 
 
-        # Determine which non-requied columns should we fill in values for this
-        # feature, combining  one or more columns used as the groupby key and
-        # also including additional columns specified by the user
-        feature_columns = list(extra_columns[feature_name])
-        if isinstance(groupby_key, (list, tuple)):
-            feature_columns.extend(groupby_key)
-        else:
-            feature_columns.append(groupby_key)
+        # User specifies which non-requied columns should we try to infer
+        # values for
+        feature_columns = list(extra_columns.get(feature_name, []))
 
         for i, (feature_id, group) in enumerate(row_groups):
             # fill in the required columns by assuming that this feature
@@ -91,7 +86,7 @@ def create_missing_features(
             # tagged with its unique ID (e.g. union of exons which had a
             # particular gene_id).
             feature_values["feature"][i] = feature_name
-
+            feature_values[groupby_key][i] = feature_id
             # set the source to 'gtfparse' to indicate that we made this
             # entry up from other data
             feature_values["source"][i] = "gtfparse"
@@ -118,4 +113,5 @@ def create_missing_features(
                 if len(unique_values) == 1:
                     feature_values[column_name][i] = unique_values[0]
         extra_dataframes.append(pd.DataFrame(feature_values))
+    print(pd.concat([dataframe] + extra_dataframes, ignore_index=True))
     return pd.concat([dataframe] + extra_dataframes, ignore_index=True)

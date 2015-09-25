@@ -35,7 +35,8 @@ def _check_expanded_dataframe(df):
         (df["feature"] == "transcript") &
         (df["transcript_name"] == "C18orf10-201"))
     assert len(df[C18orf10_201_transcript_mask]) == 1, \
-        "Expected only 1 gene entry for C18orf10-201"
+        "Expected only 1 gene entry for C18orf10-201, got %s" % (
+            df[C18orf10_201_transcript_mask],)
     transcript_seqname = df[C18orf10_201_transcript_mask].seqname.irow(0)
     assert (transcript_seqname == "18"), \
         "Wrong seqname for C18orf10-201: %s" % transcript_seqname
@@ -74,5 +75,13 @@ def test_create_missing_features():
     assert "transcript" not in set(GTF_DATAFRAME["feature"]), \
         "Original GTF should not contain transcript feature"
     df_extra_features = create_missing_features(
-        GTF_DATAFRAME, {"gene": "gene_id", "transcript": "transcript_id"})
+        GTF_DATAFRAME,
+        unique_keys={
+            "gene": "gene_id",
+            "transcript": "transcript_id"
+        },
+        extra_columns={
+            "gene": {"gene_name"},
+            "transcript": {"gene_id", "gene_name", "transcript_name"},
+        })
     _check_expanded_dataframe(df_extra_features)
