@@ -85,6 +85,9 @@ def read_gtf_as_dict(
         # gene_biotype)
         if "gene_biotype" not in result_dict.keys():
             result_dict["gene_biotype"] = result_dict["source"]
+            # old Ensembl releases seem to only contain e.g.
+            # coding transcripts for protein_coding genes
+            result_dict["transcript_biotype"] = result_dict["source"]
         elif "transcript_biotype" not in result_dict.keys():
             result_dict["transcript_biotype"] = result_dict["source"]
 
@@ -94,8 +97,7 @@ def read_gtf_as_dataframe(
         filename,
         expand_attribute_column=True,
         infer_biotype_column=False,
-        column_converters={},
-        create_features_if_missing_dict={}):
+        column_converters={}):
     """
     Parse GTF and convert it to a DataFrame.
 
@@ -118,11 +120,6 @@ def read_gtf_as_dataframe(
         Dictionary mapping column names to conversion functions. Will replace
         empty strings with None and otherwise passes them to given conversion
         function.
-
-    create_features_if_missing_dict : dict, optional
-        Create features such as 'gene' from a unique ID such as 'gene_id'
-        associated with existing features in a GTF file. Dictionary
-        maps names of missing features to their unique ID column.
     """
     gtf_dict = read_gtf_as_dict(
         filename=filename,
@@ -140,16 +137,4 @@ def read_gtf_as_dataframe(
     logging.debug("Memory usage after DataFrame construction: %0.4f MB" % (
         memory_usage(),))
 
-    unique_features = set(df["feature"])
-    # don't try to create features which were already in the GTF
-    create_features_if_missing_dict = {
-        feature_name: groupby_key
-        for (feature_name, groupby_key) in
-        create_features_if_missing_dict.items()
-        if feature_name not in unique_features
-    }
-    if create_features_if_missing_dict:
-        df = create_missing_features(
-            df,
-            feature_name_to_unique_key_dict=create_features_if_missing_dict)
     return df
