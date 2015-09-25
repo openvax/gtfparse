@@ -60,8 +60,9 @@ def create_missing_features(
 
     for (feature_name, groupby_key) in unique_keys.items():
         if feature_name in existing_features:
-            logging.warn(
+            logging.info(
                 "Feature '%s' already exists in GTF data" % feature_name)
+            continue
         logging.info("Creating rows for missing feature '%s'" % feature_name)
 
         row_groups = dataframe.groupby(groupby_key)
@@ -75,8 +76,7 @@ def create_missing_features(
             for column_name in dataframe.keys()
         ])
 
-
-        # User specifies which non-requied columns should we try to infer
+        # User specifies which non-required columns should we try to infer
         # values for
         feature_columns = list(extra_columns.get(feature_name, []))
 
@@ -106,12 +106,11 @@ def create_missing_features(
                         "Column '%s' does not exist in GTF, columns = %s" % (
                             column_name, existing_columns))
 
-                # expect that all entries related to a reconstructed featue
+                # expect that all entries related to a reconstructed feature
                 # are related and are thus within the same interval of
                 # positions on the same chromosome
                 unique_values = group[column_name].dropna().unique()
                 if len(unique_values) == 1:
                     feature_values[column_name][i] = unique_values[0]
         extra_dataframes.append(pd.DataFrame(feature_values))
-    print(pd.concat([dataframe] + extra_dataframes, ignore_index=True))
     return pd.concat([dataframe] + extra_dataframes, ignore_index=True)
