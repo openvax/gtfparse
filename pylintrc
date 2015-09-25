@@ -1,0 +1,6 @@
+[TYPECHECK]
+# Without ignoring this, we get errors like:
+# E:249,20: Module 'numpy' has no 'nan' member (no-member)
+ignored-modules = numpy
+# getting 'no-value-for-parameter' from nose.tools.assert_raises
+ignored-classes = nose.tools
