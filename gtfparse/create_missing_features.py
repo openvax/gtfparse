@@ -65,7 +65,10 @@ def create_missing_features(
             continue
         logging.info("Creating rows for missing feature '%s'" % feature_name)
 
-        row_groups = dataframe.groupby(groupby_key)
+        # don't include rows where the groupby key was missing
+        empty_key_values = dataframe[groupby_key].map(
+            lambda x: x == "" or x is None)
+        row_groups = dataframe[~empty_key_values].groupby(groupby_key)
 
         # Each group corresponds to a unique feature entry for which the
         # other columns may or may not be uniquely defined. Start off by
