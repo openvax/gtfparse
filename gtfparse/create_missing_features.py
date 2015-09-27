@@ -23,7 +23,8 @@ from .required_columns import REQUIRED_COLUMNS
 def create_missing_features(
         dataframe,
         unique_keys={},
-        extra_columns={}):
+        extra_columns={},
+        missing_value=None):
     """
     Helper function used to construct a missing feature such as 'transcript'
     or 'gene'. Some GTF files only have 'exon' and 'CDS' entries, but have
@@ -46,14 +47,13 @@ def create_missing_features(
         be included should be associated with the feature name in this
         dict.
 
+    missing_value : any
+        Which value to fill in for columns that we don't infer values for.
+
     Returns original dataframe along with all extra rows created for missing
     features.
     """
     extra_dataframes = []
-
-    # column names for which we have special logic for inferring
-    # their values
-    special_column_names = {"start", "end", "seqname", "featue"}
 
     existing_features = set(dataframe["feature"])
     existing_columns = set(dataframe.keys())
@@ -72,7 +72,7 @@ def create_missing_features(
         # assuming the values for every column are missing and fill them in
         # where possible.
         feature_values = OrderedDict([
-            (column_name, [None] * len(row_groups))
+            (column_name, [missing_value] * row_groups.ngroups)
             for column_name in dataframe.keys()
         ])
 
