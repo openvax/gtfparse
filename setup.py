@@ -40,7 +40,7 @@ if __name__ == '__main__':
     setup(
         name='gtfparse',
         packages=find_packages(),
-        version="0.0.3",
+        version="0.0.4",
         description="GTF Parsing",
         long_description=readme,
         url="https://github.com/hammerlab/gtfparse",
