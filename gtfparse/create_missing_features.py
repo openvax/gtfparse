@@ -1,4 +1,4 @@
-# Copyright (c) 2015. Mount Sinai School of Medicine
+# Copyright (c) 2015-2016. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@ import logging
 from collections import OrderedDict
 
 import pandas as pd
-
-from .required_columns import REQUIRED_COLUMNS
 
 def create_missing_features(
         dataframe,
@@ -98,11 +96,11 @@ def create_missing_features(
 
             # assume that seqname and strand are the same for all other
             # entries in the GTF which shared this unique ID
-            feature_values["seqname"][i] = group["seqname"].irow(0)
-            feature_values["strand"][i] = group["strand"].irow(0)
+            feature_values["seqname"][i] = group["seqname"].iat[0]
+            feature_values["strand"][i] = group["strand"].iat[0]
+
             # there's probably no rigorous way to set the values of
             # 'score' or 'frame' columns so leave them empty
-
             for column_name in feature_columns:
                 if column_name not in existing_columns:
                     raise ValueError(

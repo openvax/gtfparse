@@ -1,4 +1,4 @@
-# Copyright (c) 2015. Mount Sinai School of Medicine
+# Copyright (c) 2015-2016. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,12 +17,8 @@ import logging
 from os.path import exists
 import gzip
 
-
-import numpy as np
 import pandas as pd
-from six.moves import intern
 
-from .create_missing_features import create_missing_features
 from .util import memory_usage
 from .line_parsing import parse_gtf_lines
 
