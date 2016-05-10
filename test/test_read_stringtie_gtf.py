@@ -1,5 +1,4 @@
 from gtfparse import read_gtf_as_dict, read_gtf_as_dataframe
-import numpy as np
 from data import data_path
 
 B16_GTF_PATH = data_path("B16.stringtie.head.gtf")
@@ -32,7 +31,7 @@ def _check_float_cov_and_FPKM(gtf_dict):
         cov = gtf_dict["cov"][i]
         fpkm = gtf_dict["FPKM"][i]
         assert isinstance(cov, float), \
-                "Expected cov to be float but got %s : %s" % (cov, type(cov))
+            "Expected cov to be float but got %s : %s" % (cov, type(cov))
         if feature_name == "exon":
             assert cov >= 0, "Expected non-negative cov for exon, got %s" % (cov,)
         elif feature_name == "transcript":
@@ -52,14 +51,15 @@ def test_read_stringtie_gtf_as_dataframe():
     _check_string_cov_and_FPKM(gtf_df)
 
 def test_read_string_gtf_as_dict_float_values():
-    gtf_dict = read_gtf_as_dict(B16_GTF_PATH,
+    gtf_dict = read_gtf_as_dict(
+        B16_GTF_PATH,
         column_converters={"cov": float, "FPKM": float})
     _check_required_columns(gtf_dict)
     _check_float_cov_and_FPKM(gtf_dict)
 
 def test_read_stringtie_gtf_as_dataframe_float_values():
-    gtf_df = read_gtf_as_dataframe(B16_GTF_PATH,
+    gtf_df = read_gtf_as_dataframe(
+        B16_GTF_PATH,
         column_converters={"cov": float, "FPKM": float})
     _check_required_columns(gtf_df)
     _check_float_cov_and_FPKM(gtf_df)
-

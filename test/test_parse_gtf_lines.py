@@ -26,10 +26,10 @@ def test_parse_gtf_lines_with_expand_attributes():
     eq_(parsed_dict["seqname"], ["1", "1"])
     # convert to list for comparison since numerical columns may be NumPy arrays
     eq_(list(parsed_dict["start"]), [11869, 11869])
-    eq_(list(parsed_dict["end"] ), [14409, 14409])
+    eq_(list(parsed_dict["end"]), [14409, 14409])
     # can't compare NaN with equality
     scores = list(parsed_dict["score"])
-    assert np.isnan(scores).all() , "Unexpected scores: %s" % scores
+    assert np.isnan(scores).all(), "Unexpected scores: %s" % scores
     eq_(parsed_dict["gene_id"], ["ENSG00000223972", "ENSG00000223972"])
     eq_(parsed_dict["transcript_id"], ["", "ENST00000456328"])
 
@@ -42,10 +42,10 @@ def test_parse_gtf_lines_without_expand_attributes():
     eq_(parsed_dict["seqname"], ["1", "1"])
     # convert to list for comparison since numerical columns may be NumPy arrays
     eq_(list(parsed_dict["start"]), [11869, 11869])
-    eq_(list(parsed_dict["end"] ), [14409, 14409])
+    eq_(list(parsed_dict["end"]), [14409, 14409])
     # can't compare NaN with equality
     scores = list(parsed_dict["score"])
-    assert np.isnan(scores).all() , "Unexpected scores: %s" % scores
+    assert np.isnan(scores).all(), "Unexpected scores: %s" % scores
     assert len(parsed_dict["attribute"]) == 2
 
 def test_parse_gtf_lines_error_too_many_fields():

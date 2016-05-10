@@ -14,6 +14,7 @@
 
 from __future__ import print_function
 import os
+import re
 
 from setuptools import setup, find_packages
 
@@ -36,11 +37,17 @@ except Exception as e:
     print(e)
     print("Failed to convert %s from Markdown to reStructuredText" % readme_filename)
 
+with open('gtfparse/__init__.py', 'r') as f:
+    version = re.search(
+        r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+        f.read(),
+        re.MULTILINE).group(1)
+
 if __name__ == '__main__':
     setup(
         name='gtfparse',
         packages=find_packages(),
-        version="0.0.5",
+        version=version,
         description="GTF Parsing",
         long_description=readme,
         url="https://github.com/hammerlab/gtfparse",

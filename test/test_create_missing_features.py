@@ -1,9 +1,4 @@
-
-import tempfile
-from six.moves import StringIO
-from gtfparse import (
-    create_missing_features, parse_gtf_lines, read_gtf_as_dataframe
-)
+from gtfparse import create_missing_features, parse_gtf_lines
 import pandas
 
 # two lines from the Ensembl 54 human GTF containing only a stop_codon and
@@ -28,7 +23,7 @@ def test_create_missing_features_identity():
 def _check_expanded_dataframe(df):
     assert "gene" in set(df["feature"]), \
         "Extended GTF should contain gene feature"
-    assert "transcript"  in set(df["feature"]), \
+    assert "transcript" in set(df["feature"]), \
         "Extended GTF should contain transcript feature"
 
     C18orf10_201_transcript_mask = (
@@ -66,7 +61,6 @@ def _check_expanded_dataframe(df):
     gene_strand = df[KIAA1328_gene_mask].strand.irow(0)
     assert (gene_strand == "+"), \
         "Wrong strand for KIAA1328: %s" % gene_strand
-
 
 
 def test_create_missing_features():
