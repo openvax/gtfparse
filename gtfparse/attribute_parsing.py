@@ -101,7 +101,10 @@ def expand_attribute_strings(
             value = intern(str(value))
             value_interned_strings[value] = value
 
-        column[i] = value
+        if column[i] == missing_value:
+            column[i] = value
+        else:
+            column[i] = "{},{}".format(column[i], value)
 
     logging.debug(
         "Memory usage after expanding GTF attributes: %0.4f MB" % (
