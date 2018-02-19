@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/hammerlab/gtfparse.svg?branch=master)](https://travis-ci.org/hammerlab/gtfparse) [![Coverage Status](https://coveralls.io/repos/hammerlab/gtfparse/badge.svg?branch=master&service=github)](https://coveralls.io/github/hammerlab/gtfparse?branch=master)
+[![Build Status](https://travis-ci.org/openvax/gtfparse.svg?branch=master)](https://travis-ci.org/openvax/gtfparse) [![Coverage Status](https://coveralls.io/repos/openvax/gtfparse/badge.svg?branch=master&service=github)](https://coveralls.io/github/openvax/gtfparse?branch=master)
 
 gtfparse
 ========
