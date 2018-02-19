@@ -32,8 +32,9 @@ script:
 after_success: coveralls
 deploy:
   provider: pypi
-  user: hammerlab
-  password:
-    secure: PhfYluJI9Cjm4rItCTgRiRWiYH1OjLPogGVmx/OgEjlXIw+UF6VYfjL9AZqE9KR0dVdnQ7QB3gnxO1pKdIIWiHb0+9Pyy2kqQM50is9aDRqpSUKp5KjJx75PTxtyftVBXiOjncb6Itm6qKLDwzlH9/Xlv0TtixBARYzZ9g2eP8Gj0k23Ba5k/Jsmv+rv0NTSayiY8CCynsJkj8UHSrSj/5+If99lM3UtwPqjLRxf9iHbiKLvOXbmwRZfCLjCNU10zX+ySDZSCYCpbzPjfVqvIWzKLWORhDqy3RMRYJ6R+xaIKQ1DXNjcIInMBwSr0Ed/onDrz2YmdbBF/vY4omqXWYccw58iAPMDSTHO+2qoZdYTw+j0nDwcJz3sFladS9fb0CZHa1jaVlfEdoV9KGFjrtyWvbL9zBvTz1QSHVcXI6XknUQ8KtnTnpEnuSj7h/7+/xqsDvxvvqTyE/5I4qKmjW8otxd9qV/ft7nGb1fHncD3i8rnBV+/BfklImF+f4HLKWBT1Qx4CAzBKiaeVLkoN2fqO/T+mRQG10lU1N/QuVVfhfDKL7Fy/w7zpzhPxnTlQ4YmPWAs/lQ+09LWh0t6u8uNsiRDlCpuRH4UBBD/yvfCiCOw0YZtr7Ij0EKGq2YSz5jO3mzUCAvuVJzNH2ZoygbpdvjGzKuuYNZ7b2tINqc=
+  distributions: sdist
+  user: openvax
+  password: # See http://docs.travis-ci.com/user/encryption-keys/
+    secure: "S4KWAhJpKYx5F/cBc6cf9GCZ8Hd+WtMA6V6PP25PglLnVaXrxB5QxuAIWGAvr/jGuTHjfCSCNDwTptW3natLjJR9IfJdJPp3gNvM0RDjWY4FsziFz/nG/bZo9qnh4ZCDhK/Po1izxXM0u9z6gUc0U2iKK1ZSdfawyW4nZbAXQUU="
   on:
     branch: master
