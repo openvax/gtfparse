@@ -33,6 +33,8 @@ except Exception as e:
 try:
     import pypandoc
     readme = pypandoc.convert(readme, to='rst', format='md')
+    with open(readme_path.replace(".md", ".rst"), "w") as f:
+        f.write(readme)
 except Exception as e:
     print(e)
     print("Failed to convert %s from Markdown to reStructuredText" % readme_filename)
