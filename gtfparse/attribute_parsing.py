@@ -106,10 +106,8 @@ def expand_attribute_strings(
         old_value = column[i]
         if old_value == missing_value:
             column[i] = value
-        elif type(old_value) is list:
-            old_value.append(value)
         else:
-            column[i] = [old_value, value]
+            column[i] = "%s,%s" % (old_value, value)
 
     logging.debug(
         "Memory usage after expanding GTF attributes: %0.4f MB" % (

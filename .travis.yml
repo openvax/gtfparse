@@ -21,7 +21,7 @@ before_install:
   # Useful for debugging any issues with conda
   - conda info -a
 install:
-- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy nose pandas pylint
+- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy nose pandas pylint pandoc
 - source activate test-environment
 - pip install -r requirements.txt
 - pip install .
