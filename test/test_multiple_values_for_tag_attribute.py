@@ -16,4 +16,4 @@ def test_parse_tag_attributes():
     tag_column = parsed["tag"]
     eq_(len(tag_column), 1)
     tags = tag_column[0]
-    eq_(tags, ['cds_end_NF', 'mRNA_end_NF'])
+    eq_(tags, 'cds_end_NF,mRNA_end_NF')
