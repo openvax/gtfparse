@@ -93,7 +93,7 @@ def expand_attribute_strings(
             extra_columns[column_name] = column
             column_order.append(column_name)
 
-        value = value.replace(quote_char, "") if quote_char in value else value
+        value = value.replace(quote_char, "") if value.startswith(quote_char) else value
 
         try:
             value = value_interned_strings[value]
@@ -103,13 +103,13 @@ def expand_attribute_strings(
 
         # if an attribute is used repeatedly then
         # keep track of all its values in a list
-        current_row = column[i]
-        if current_row == missing_value:
+        old_value = column[i]
+        if old_value == missing_value:
             column[i] = value
-        elif type(current_row) is list:
-            current_row.append(value)
+        elif type(old_value) is list:
+            old_value.append(value)
         else:
-            column[i] = [value]
+            column[i] = [old_value, value]
 
     logging.debug(
         "Memory usage after expanding GTF attributes: %0.4f MB" % (
