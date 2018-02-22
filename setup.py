@@ -22,20 +22,21 @@ readme_filename = "README.md"
 current_directory = os.path.dirname(__file__)
 readme_path = os.path.join(current_directory, readme_filename)
 
-readme = ""
+readme_markdown = ""
 try:
     with open(readme_path, 'r') as f:
-        readme = f.read()
+        readme_markdown = f.read()
 except Exception as e:
     print(e)
     print("Failed to open %s" % readme_path)
 
 try:
     import pypandoc
-    readme = pypandoc.convert(readme, to='rst', format='md')
+    readme_restructured = pypandoc.convert(readme_markdown, to='rst', format='md')
     with open(readme_path.replace(".md", ".rst"), "w") as f:
-        f.write(readme)
+        f.write(readme_restructured)
 except Exception as e:
+    readme_restructured = ""
     print(e)
     print("Failed to convert %s from Markdown to reStructuredText" % readme_filename)
 
@@ -51,7 +52,7 @@ if __name__ == '__main__':
         packages=find_packages(),
         version=version,
         description="GTF Parsing",
-        long_description=readme,
+        long_description=readme_restructured,
         url="https://github.com/hammerlab/gtfparse",
         author="Alex Rubinsteyn",
         license="http://www.apache.org/licenses/LICENSE-2.0.html",
