@@ -10,8 +10,9 @@ cache:
 before_install:
   # don't install miniconda if it's already cached
   # if not yet installed, use different versions for py2 vs. py3
-  - if test -e $HOME/miniconda/bin ; then
-      echo "miniconda already installed."
+  - |
+    if [ -f  $HOME/miniconda/bin] then
+      echo "miniconda already installed"
     else
       rm -rf $HOME/miniconda
       if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
@@ -22,8 +23,6 @@ before_install:
       bash miniconda.sh -b -p $HOME/miniconda
       export PATH="$HOME/miniconda/bin:$PATH"
     fi
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
