@@ -1,4 +1,4 @@
-# Copyright (c) 2015. Mount Sinai School of Medicine
+# Copyright (c) 2015-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ try:
     with open(readme_path.replace(".md", ".rst"), "w") as f:
         f.write(readme_restructured)
 except Exception as e:
-    readme_restructured = ""
+    readme_restructured = readme_markdown
     print(e)
     print("Failed to convert %s from Markdown to reStructuredText" % readme_filename)
 
@@ -53,7 +53,7 @@ if __name__ == '__main__':
         version=version,
         description="GTF Parsing",
         long_description=readme_restructured,
-        url="https://github.com/hammerlab/gtfparse",
+        url="https://github.com/openvax/gtfparse",
         author="Alex Rubinsteyn",
         license="http://www.apache.org/licenses/LICENSE-2.0.html",
         classifiers=[
