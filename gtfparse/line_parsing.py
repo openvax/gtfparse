@@ -23,7 +23,7 @@ from .util import memory_usage
 from .attribute_parsing import expand_attribute_strings
 from .parsing_error import ParsingError
 
-def parse_gtf_lines(lines, expand_attribute_column=True):
+def parse_gtf_lines(lines):
     """
     Parse the lines of GTF file into a dictionary mapping
     column names to sequences of values.
@@ -34,10 +34,10 @@ def parse_gtf_lines(lines, expand_attribute_column=True):
         Any iterable object which contains strings representing the
         lines of a GTF file.
 
-    expand_attribute_column : bool
-        Replace strings of semi-colon separated key-value values in the
-        'attribute' column with one column per distinct key, with a list of
-        values for each row (using None for rows where key didn't occur).
+
+    usecols : list of str or None
+        Restrict which columns are loaded to the give set. If None, then
+        load all columns.
     """
     logging.debug("Memory usage before GTF parsing: %0.4f MB" % memory_usage())
     seqname_values = []
@@ -93,8 +93,7 @@ def parse_gtf_lines(lines, expand_attribute_column=True):
         # transcript_name = "PRAMEF6;-201"
         attribute_values.append(attr.replace(';\"', '\"').replace(";-", "-"))
     logging.debug("Memory usage after GTF parsing: %0.4f MB" % memory_usage())
-
-    result_dict = OrderedDict([
+    return OrderedDict([
         ("seqname", seqname_values),
         ("source", source_values),
         ("feature", feature_values),
@@ -102,16 +101,29 @@ def parse_gtf_lines(lines, expand_attribute_column=True):
         ("end", np.array(end_values, dtype=np.int64)),
         ("score", np.array(score_values, dtype=np.float32)),
         ("strand", strand_values),
-        ("frame", frame_values)
+        ("frame", frame_values),
+        ("attribute", attribute_values),
     ])
-    if expand_attribute_column:
-        # remove references to the columns we converted since their data is
-        # being duplicated and the increased memory usage of attribute expansion
-        # might push us over e.g. the 3gb Travis limit
-        del start_values
-        del end_values
-        del score_values
-        result_dict.update(expand_attribute_strings(attribute_values))
-    else:
-        result_dict["attribute"] = attribute_values
+
+def parse_gtf_lines_and_expand_attributes(lines, use_attribute_columns=None):
+    """
+    Parse lines into column->values dictionary and then expand
+    the 'attribute' column into multiple columns. This expansion happens
+    by replacing strings of semi-colon separated key-value values in the
+    'attribute' column with one column per distinct key, with a list of
+    values for each row (using None for rows where key didn't occur).
+
+    Parameters
+    ----------
+    lines : list or generator
+
+    use_attribute_columns : list/set of str or None
+        If given, then only usese attribute columns.
+    """
+    result_dict = parse_gtf_lines(lines)
+    attribute_values = result_dict["attribute"]
+    del result_dict["attribute"]
+    result_dict.update(
+        expand_attribute_strings(
+            attribute_values, usecols=use_attribute_columns))
     return result_dict

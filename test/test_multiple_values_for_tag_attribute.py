@@ -1,4 +1,4 @@
-from gtfparse import parse_gtf_lines
+from gtfparse import parse_gtf_lines_and_expand_attributes
 from nose.tools import eq_
 
 # failing example from https://github.com/openvax/gtfparse/issues/2
@@ -12,8 +12,23 @@ GTF_LINES = [
 ]
 
 def test_parse_tag_attributes():
-    parsed = parse_gtf_lines(GTF_LINES)
+    parsed = parse_gtf_lines_and_expand_attributes(GTF_LINES)
     tag_column = parsed["tag"]
     eq_(len(tag_column), 1)
     tags = tag_column[0]
     eq_(tags, 'cds_end_NF,mRNA_end_NF')
+
+def test_parse_tag_attributes_with_usecols():
+    parsed = parse_gtf_lines_and_expand_attributes(
+        GTF_LINES, use_attribute_columns=["tag"])
+    tag_column = parsed["tag"]
+    eq_(len(tag_column), 1)
+    tags = tag_column[0]
+    eq_(tags, 'cds_end_NF,mRNA_end_NF')
+
+def test_parse_tag_attributes_with_usecols_other_column():
+    parsed = parse_gtf_lines_and_expand_attributes(
+        GTF_LINES, use_attribute_columns=["exon_id"])
+    tag_column = parsed.get("tag")
+
+    assert tag_column is None, "Expected 'tag' to get dropped but got %s" % (parsed,)

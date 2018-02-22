@@ -1,34 +1,47 @@
 sudo: false
-language: python
+language: minimal
 python:
-- '2.7'
-- '3.6'
+  - '2.7'
+  - '3.6'
+cache:
+  directories:
+    - $HOME/.cache/pip
+    - $HOME/miniconda
 before_install:
-  # Commands below copied from: http://conda.pydata.org/docs/travis.html
-  #
-  # We do this conditionally because it saves us some downloading if the
-  # version is the same.
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+  # don't install miniconda if it's already cached
+  # if not yet installed, use different versions for py2 vs. py3
+  - |
+    if [ -f  $HOME/miniconda/bin]
+      then
+      echo "miniconda already installed"
     else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+      rm -rf $HOME/miniconda
+      if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+        wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+      else
+        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+      fi
+      bash miniconda.sh -b -p $HOME/miniconda
+      export PATH="$HOME/miniconda/bin:$PATH"
     fi
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
 install:
-- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy nose pandas pylint pandoc
-- source activate test-environment
-- pip install -r requirements.txt
-- pip install .
-- pip install pypandoc
-- pip install coveralls
+  - >
+      conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+      numpy nose pandas pylint pandoc
+  - source activate test-environment
+  # make sure we're using the correct version
+  - python --version
+  - pip install -r requirements.txt
+  - pip install .
+  - pip install pypandoc
+  - pip install coveralls
 script:
-- nosetests test --with-coverage --cover-package=gtfparse && ./lint.sh
+  - nosetests test --with-coverage --cover-package=gtfparse && ./lint.sh
 after_success: coveralls
 deploy:
   provider: pypi

@@ -1,4 +1,4 @@
-# Copyright (c) 2015. Mount Sinai School of Medicine
+# Copyright (c) 2015-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,20 +22,21 @@ readme_filename = "README.md"
 current_directory = os.path.dirname(__file__)
 readme_path = os.path.join(current_directory, readme_filename)
 
-readme = ""
+readme_markdown = ""
 try:
     with open(readme_path, 'r') as f:
-        readme = f.read()
+        readme_markdown = f.read()
 except Exception as e:
     print(e)
     print("Failed to open %s" % readme_path)
 
 try:
     import pypandoc
-    readme = pypandoc.convert(readme, to='rst', format='md')
+    readme_restructured = pypandoc.convert(readme_markdown, to='rst', format='md')
     with open(readme_path.replace(".md", ".rst"), "w") as f:
-        f.write(readme)
+        f.write(readme_restructured)
 except Exception as e:
+    readme_restructured = readme_markdown
     print(e)
     print("Failed to convert %s from Markdown to reStructuredText" % readme_filename)
 
@@ -51,8 +52,8 @@ if __name__ == '__main__':
         packages=find_packages(),
         version=version,
         description="GTF Parsing",
-        long_description=readme,
-        url="https://github.com/hammerlab/gtfparse",
+        long_description=readme_restructured,
+        url="https://github.com/openvax/gtfparse",
         author="Alex Rubinsteyn",
         license="http://www.apache.org/licenses/LICENSE-2.0.html",
         classifiers=[

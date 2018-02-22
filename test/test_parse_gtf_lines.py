@@ -1,7 +1,11 @@
 import numpy as np
 from nose.tools import eq_, assert_raises
-from gtfparse import parse_gtf_lines, REQUIRED_COLUMNS, ParsingError
-
+from gtfparse import (
+    parse_gtf_lines,
+    parse_gtf_lines_and_expand_attributes,
+    REQUIRED_COLUMNS,
+    ParsingError
+)
 gtf_lines = """
 # sample GTF data copied from:
 # http://useast.ensembl.org/info/website/upload/gff.html?redirect=no
@@ -10,7 +14,7 @@ gtf_lines = """
 """.split("\n")
 
 def test_parse_gtf_lines_with_expand_attributes():
-    parsed_dict = parse_gtf_lines(gtf_lines, expand_attribute_column=True)
+    parsed_dict = parse_gtf_lines_and_expand_attributes(gtf_lines)
     # excluding 'attribute' column from required names
     expected_columns = REQUIRED_COLUMNS[:8] + [
         "gene_id",
@@ -35,7 +39,7 @@ def test_parse_gtf_lines_with_expand_attributes():
 
 
 def test_parse_gtf_lines_without_expand_attributes():
-    parsed_dict = parse_gtf_lines(gtf_lines, expand_attribute_column=False)
+    parsed_dict = parse_gtf_lines(gtf_lines)
 
     # convert to list since Py3's dictionary keys are a distinct collection type
     eq_(list(parsed_dict.keys()), REQUIRED_COLUMNS)
