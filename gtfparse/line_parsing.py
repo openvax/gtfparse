@@ -38,6 +38,10 @@ def parse_gtf_lines(lines, expand_attribute_column=True):
         Replace strings of semi-colon separated key-value values in the
         'attribute' column with one column per distinct key, with a list of
         values for each row (using None for rows where key didn't occur).
+
+    usecols : list of str or None
+        Restrict which columns are loaded to the give set. If None, then
+        load all columns.
     """
     logging.debug("Memory usage before GTF parsing: %0.4f MB" % memory_usage())
     seqname_values = []

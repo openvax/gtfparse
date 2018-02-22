@@ -50,4 +50,12 @@ def test_ensembl_gtf_gene_names():
             gene_names.difference(EXPECTED_GENE_NAMES)
         )
 
-
+def test_ensembl_gtf_gene_names_with_usecols():
+    df = read_gtf_as_dataframe(ENSEMBL_GTF_PATH, usecols=["gene_name"])
+    gene_names = set(df["gene_name"])
+    assert gene_names == EXPECTED_GENE_NAMES, \
+        "Wrong gene names: %s, missing %s and unexpected %s" % (
+            gene_names,
+            EXPECTED_GENE_NAMES.difference(gene_names),
+            gene_names.difference(EXPECTED_GENE_NAMES)
+        )
