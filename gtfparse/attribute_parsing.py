@@ -23,7 +23,8 @@ from .util import memory_usage
 def expand_attribute_strings(
         attribute_strings,
         quote_char='\"',
-        missing_value=""):
+        missing_value="",
+        usecols=None):
     """
     The last column of GTF has a variable number of key value pairs
     of the format: "key1 value1; key2 value2;"
@@ -40,6 +41,10 @@ def expand_attribute_strings(
     missing_value : any
         If an attribute is missing from a row, give it this value.
 
+    usecols : list of str or None
+        If not None, then only expand columns included in this set,
+        otherwise use all columns.
+
     Returns OrderedDict of column->value list mappings, in the order they
     appeared in the attribute strings.
     """
@@ -50,22 +55,6 @@ def expand_attribute_strings(
 
     extra_columns = {}
     column_order = []
-
-    # Split the semi-colon separated attributes in the last column of a GTF
-    # into a list of (key, value) pairs.
-    kv_generator = (
-        # We're slicing the first two elements out of split() because
-        # Ensembl release 79 added values like:
-        #   transcript_support_level "1 (assigned to previous version 5)";
-        # ...which gets mangled by splitting on spaces.
-        #
-        # TODO: implement a proper parser!
-        (i, kv.strip().split(" ", 2)[:2])
-        for (i, attribute_string) in enumerate(attribute_strings)
-        for kv in attribute_string.split(";")
-        # need at least 3 chars for minimal entry like 'k v'
-        if len(kv) > 2 and " " in kv
-    )
 
     #
     # SOME NOTES ABOUT THE BIZARRE STRING INTERNING GOING ON BELOW
@@ -82,32 +71,47 @@ def expand_attribute_strings(
     column_interned_strings = {}
     value_interned_strings = {}
 
-    for i, (column_name, value) in kv_generator:
-        try:
-            column_name = column_interned_strings[column_name]
-            column = extra_columns[column_name]
-        except KeyError:
-            column_name = intern(str(column_name))
-            column_interned_strings[column_name] = column_name
-            column = [missing_value] * n
-            extra_columns[column_name] = column
-            column_order.append(column_name)
+    for (i, attribute_string) in enumerate(attribute_strings):
+        for kv in attribute_string.split(";"):
+            # We're slicing the first two elements out of split() because
+            # Ensembl release 79 added values like:
+            #   transcript_support_level "1 (assigned to previous version 5)";
+            # ...which gets mangled by splitting on spaces.
+            parts = kv.strip().split(" ", 2)[:2]
 
-        value = value.replace(quote_char, "") if value.startswith(quote_char) else value
+            if len(parts) != 2:
+                continue
 
-        try:
-            value = value_interned_strings[value]
-        except KeyError:
-            value = intern(str(value))
-            value_interned_strings[value] = value
+            column_name, value = parts
 
-        # if an attribute is used repeatedly then
-        # keep track of all its values in a list
-        old_value = column[i]
-        if old_value == missing_value:
-            column[i] = value
-        else:
-            column[i] = "%s,%s" % (old_value, value)
+            try:
+                column_name = column_interned_strings[column_name]
+                column = extra_columns[column_name]
+            except KeyError:
+                column_name = intern(str(column_name))
+                column_interned_strings[column_name] = column_name
+                column = [missing_value] * n
+                extra_columns[column_name] = column
+                column_order.append(column_name)
+
+            if usecols is not None and column_name not in usecols:
+                continue
+
+            value = value.replace(quote_char, "") if value.startswith(quote_char) else value
+
+            try:
+                value = value_interned_strings[value]
+            except KeyError:
+                value = intern(str(value))
+                value_interned_strings[value] = value
+
+            # if an attribute is used repeatedly then
+            # keep track of all its values in a list
+            old_value = column[i]
+            if old_value is missing_value:
+                column[i] = value
+            else:
+                column[i] = "%s,%s" % (old_value, value)
 
     logging.debug(
         "Memory usage after expanding GTF attributes: %0.4f MB" % (
