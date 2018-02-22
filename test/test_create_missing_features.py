@@ -1,4 +1,4 @@
-from gtfparse import create_missing_features, parse_gtf_lines
+from gtfparse import create_missing_features, parse_gtf_lines_and_expand_attributes
 import pandas
 
 # two lines from the Ensembl 54 human GTF containing only a stop_codon and
@@ -19,7 +19,7 @@ GTF_DATA = "\n".join([
 
 GTF_LINES = GTF_DATA.split("\n")
 
-GTF_DICT = parse_gtf_lines(GTF_LINES)
+GTF_DICT = parse_gtf_lines_and_expand_attributes(GTF_LINES)
 GTF_DATAFRAME = pandas.DataFrame(GTF_DICT)
 
 def test_create_missing_features_identity():

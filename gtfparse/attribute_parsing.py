@@ -86,16 +86,19 @@ def expand_attribute_strings(
 
             try:
                 column_name = column_interned_strings[column_name]
-                column = extra_columns[column_name]
             except KeyError:
                 column_name = intern(str(column_name))
                 column_interned_strings[column_name] = column_name
-                column = [missing_value] * n
-                extra_columns[column_name] = column
-                column_order.append(column_name)
 
             if usecols is not None and column_name not in usecols:
                 continue
+
+            try:
+                column = extra_columns[column_name]
+            except KeyError:
+                column = [missing_value] * n
+                extra_columns[column_name] = column
+                column_order.append(column_name)
 
             value = value.replace(quote_char, "") if value.startswith(quote_char) else value
 

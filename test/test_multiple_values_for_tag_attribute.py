@@ -30,4 +30,5 @@ def test_parse_tag_attributes_with_usecols_other_column():
     parsed = parse_gtf_lines_and_expand_attributes(
         GTF_LINES, use_attribute_columns=["exon_id"])
     tag_column = parsed.get("tag")
-    assert tag_column is None
+
+    assert tag_column is None, "Expected 'tag' to get dropped but got %s" % (parsed,)
