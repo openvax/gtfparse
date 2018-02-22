@@ -16,12 +16,13 @@ from __future__ import print_function, division, absolute_import
 import logging
 from os.path import exists
 import gzip
+from io import BufferedReader
 from collections import OrderedDict
 
 import pandas as pd
 
 from .util import memory_usage
-from .line_parsing import parse_gtf_lines
+from .line_parsing import parse_gtf_lines, parse_gtf_lines_and_expand_attributes
 
 
 def read_gtf_as_dict(
@@ -29,7 +30,8 @@ def read_gtf_as_dict(
         expand_attribute_column=True,
         infer_biotype_column=False,
         column_converters={},
-        usecols=None):
+        usecols=None,
+        buffer_size=1024 * 1024):
     """
     Parse a GTF into a dictionary mapping column names to sequences of values.
 
@@ -56,20 +58,29 @@ def read_gtf_as_dict(
     usecols : list of str or None
         Restrict which columns are loaded to the give set. If None, then
         load all columns.
+
+    buffer_size : int
+        Memory buffer size to use for chunks read from file
     """
     if not exists(filename):
         raise ValueError("GTF file does not exist: %s" % filename)
 
     if filename.endswith("gz") or filename.endswith("gzip"):
-        with gzip.open(filename, mode="rt") as f:
-            result_dict = parse_gtf_lines(
-                lines=f,
-                expand_attribute_column=expand_attribute_column)
+        gz = gzip.open(filename, 'rb')
+        # as far as I can tell, closing the BufferedReader instance
+        # will also close the gzip file
+        f = BufferedReader(gz, buffer_size=buffer_size)
     else:
-        with open(filename) as f:
-            result_dict = parse_gtf_lines(
-                lines=f,
-                expand_attribute_column=expand_attribute_column)
+        f = open(filename, mode="r", buffering=buffer_size)
+
+    if expand_attribute_column:
+        result_dict = parse_gtf_lines_and_expand_attributes(
+            lines=f,
+            use_attribute_columns=usecols)
+    else:
+        result_dict = parse_gtf_lines(lines=f)
+
+    f.close()
 
     if usecols is not None:
         result_dict = OrderedDict([
