@@ -94,7 +94,7 @@ def parse_gtf(path, chunksize=1024 * 1024):
     except Exception as e:
         raise ParsingError(str(e))
     logging.debug("Memory usage after GTF parsing: %0.4f MB" % memory_usage())
-    df = pd.concatenate(dataframes)
+    df = pd.concat(dataframes)
     logging.debug("Memory usage after concatenating final result: %0.4f MB" % memory_usage())
     return df
 
