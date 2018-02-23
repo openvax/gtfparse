@@ -32,6 +32,12 @@ def parse_gtf(path, chunksize=1024 * 1024):
     def intern_str(s):
         return intern(str(s))
 
+    def intern_frame(s):
+        if s == ".":
+            return 0
+        else:
+            return int(s)
+
     def fix_attribute_quotes(attr):
         # Catch mistaken semicolons by replacing "xyz;" with "xyz"
         # Required to do this since the Ensembl GTF for Ensembl release 78 has
@@ -71,7 +77,6 @@ def parse_gtf(path, chunksize=1024 * 1024):
             "start": np.int64,
             "end": np.int64,
             "score": np.float32,
-            "frame": np.int8,
         },
         na_values=".",
         converters={
@@ -79,7 +84,8 @@ def parse_gtf(path, chunksize=1024 * 1024):
             "source": intern_str,
             "feature": intern_str,
             "strand": intern_str,
-            "attribute": fix_attribute_quotes
+            "attribute": fix_attribute_quotes,
+            "frame": intern_frame,
         })
     dataframes = []
     try:

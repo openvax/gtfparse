@@ -67,7 +67,6 @@ def _check_expanded_dataframe(df):
     assert (gene_strand == "+"), \
         "Wrong strand for KIAA1328: %s" % gene_strand
 
-
 def test_create_missing_features():
     assert "gene" not in set(GTF_DATAFRAME["feature"]), \
         "Original GTF should not contain gene feature"
