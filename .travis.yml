@@ -11,7 +11,7 @@ before_install:
   # don't install miniconda if it's already cached
   # if not yet installed, use different versions for py2 vs. py3
   - |
-    if [ -f  $HOME/miniconda/bin]
+    if [ -f  $HOME/miniconda/bin ];
       then
       echo "miniconda already installed"
     else

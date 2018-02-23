@@ -19,7 +19,7 @@ from .required_columns import REQUIRED_COLUMNS
 from .parsing_error import ParsingError
 from .read_gtf import read_gtf_as_dataframe, read_gtf_as_dict
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 __all__ = [
     "expand_attribute_strings",
