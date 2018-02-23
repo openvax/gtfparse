@@ -78,11 +78,7 @@ def parse_gtf(path, chunksize=1024 * 1024):
             "seqname": intern_str,
             "source": intern_str,
             "feature": intern_str,
-            "start": int,
-            "end": int,
-            "score": float,
             "strand": intern_str,
-            "frame": int,
             "attribute": fix_attribute_quotes
         })
     dataframes = []
