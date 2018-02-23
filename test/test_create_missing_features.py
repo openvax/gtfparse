@@ -1,10 +1,10 @@
-from gtfparse import create_missing_features, parse_gtf_lines_and_expand_attributes
-import pandas
+from gtfparse import create_missing_features, parse_gtf_and_expand_attributes
+from io import StringIO
 
 # two lines from the Ensembl 54 human GTF containing only a stop_codon and
 # exon features, but from which gene and transcript information could be
 # inferred
-GTF_DATA = "\n".join([
+GTF_TEXT = "\n".join([
     "# seqname biotype feature start end score strand frame attribute",
     "".join([
         """18\tprotein_coding\tstop_codon\t32630766\t32630768\t.\t-\t0\t""",
@@ -17,10 +17,8 @@ GTF_DATA = "\n".join([
         """transcript_name "KIAA1328-202";"""]),
 ])
 
-GTF_LINES = GTF_DATA.split("\n")
 
-GTF_DICT = parse_gtf_lines_and_expand_attributes(GTF_LINES)
-GTF_DATAFRAME = pandas.DataFrame(GTF_DICT)
+GTF_DATAFRAME = parse_gtf_and_expand_attributes(StringIO(GTF_TEXT))
 
 def test_create_missing_features_identity():
     df_should_be_same = create_missing_features(GTF_DATAFRAME, {})

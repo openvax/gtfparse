@@ -1,5 +1,5 @@
 from data import data_path
-from gtfparse import read_gtf_as_dataframe
+from gtfparse import read_gtf
 from nose.tools import eq_
 
 ENSEMBL_GTF_PATH = data_path("ensembl_grch37.head.gtf")
@@ -16,7 +16,7 @@ EXPECTED_FEATURES = set([
 
 
 def test_ensembl_gtf_columns():
-    df = read_gtf_as_dataframe(ENSEMBL_GTF_PATH)
+    df = read_gtf(ENSEMBL_GTF_PATH)
     features = set(df["feature"])
     eq_(features, EXPECTED_FEATURES)
 
@@ -41,7 +41,7 @@ EXPECTED_GENE_NAMES = {
 }
 
 def test_ensembl_gtf_gene_names():
-    df = read_gtf_as_dataframe(ENSEMBL_GTF_PATH)
+    df = read_gtf(ENSEMBL_GTF_PATH)
     gene_names = set(df["gene_name"])
     assert gene_names == EXPECTED_GENE_NAMES, \
         "Wrong gene names: %s, missing %s and unexpected %s" % (
@@ -51,7 +51,27 @@ def test_ensembl_gtf_gene_names():
         )
 
 def test_ensembl_gtf_gene_names_with_usecols():
-    df = read_gtf_as_dataframe(ENSEMBL_GTF_PATH, usecols=["gene_name"])
+    df = read_gtf(ENSEMBL_GTF_PATH, usecols=["gene_name"])
+    gene_names = set(df["gene_name"])
+    assert gene_names == EXPECTED_GENE_NAMES, \
+        "Wrong gene names: %s, missing %s and unexpected %s" % (
+            gene_names,
+            EXPECTED_GENE_NAMES.difference(gene_names),
+            gene_names.difference(EXPECTED_GENE_NAMES)
+        )
+
+def test_ensembl_gtf_gene_names_zip():
+    df = read_gtf(ENSEMBL_GTF_PATH + ".gz")
+    gene_names = set(df["gene_name"])
+    assert gene_names == EXPECTED_GENE_NAMES, \
+        "Wrong gene names: %s, missing %s and unexpected %s" % (
+            gene_names,
+            EXPECTED_GENE_NAMES.difference(gene_names),
+            gene_names.difference(EXPECTED_GENE_NAMES)
+        )
+
+def test_ensembl_gtf_gene_names_with_usecols_gzip():
+    df = read_gtf(ENSEMBL_GTF_PATH + ".gz", usecols=["gene_name"])
     gene_names = set(df["gene_name"])
     assert gene_names == EXPECTED_GENE_NAMES, \
         "Wrong gene names: %s, missing %s and unexpected %s" % (

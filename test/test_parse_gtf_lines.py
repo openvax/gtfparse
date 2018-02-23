@@ -1,20 +1,22 @@
 import numpy as np
 from nose.tools import eq_, assert_raises
 from gtfparse import (
-    parse_gtf_lines,
-    parse_gtf_lines_and_expand_attributes,
+    parse_gtf,
+    parse_gtf_and_expand_attributes,
     REQUIRED_COLUMNS,
     ParsingError
 )
-gtf_lines = """
+from io import StringIO
+
+gtf_text = """
 # sample GTF data copied from:
 # http://useast.ensembl.org/info/website/upload/gff.html?redirect=no
 1\ttranscribed_unprocessed_pseudogene\tgene\t11869\t14409\t.\t+\t.\tgene_id "ENSG00000223972"; gene_name "DDX11L1"; gene_source "havana"; gene_biotype "transcribed_unprocessed_pseudogene";
 1\tprocessed_transcript\ttranscript\t11869\t14409\t.\t+\t.\tgene_id "ENSG00000223972"; transcript_id "ENST00000456328"; gene_name "DDX11L1"; gene_source "havana"; gene_biotype "transcribed_unprocessed_pseudogene"; transcript_name "DDX11L1-002"; transcript_source "havana";
-""".split("\n")
+"""
 
 def test_parse_gtf_lines_with_expand_attributes():
-    parsed_dict = parse_gtf_lines_and_expand_attributes(gtf_lines)
+    parsed_dict = parse_gtf_and_expand_attributes(StringIO(gtf_text))
     # excluding 'attribute' column from required names
     expected_columns = REQUIRED_COLUMNS[:8] + [
         "gene_id",
@@ -39,7 +41,7 @@ def test_parse_gtf_lines_with_expand_attributes():
 
 
 def test_parse_gtf_lines_without_expand_attributes():
-    parsed_dict = parse_gtf_lines(gtf_lines)
+    parsed_dict = parse_gtf(StringIO(gtf_text))
 
     # convert to list since Py3's dictionary keys are a distinct collection type
     eq_(list(parsed_dict.keys()), REQUIRED_COLUMNS)
@@ -53,13 +55,13 @@ def test_parse_gtf_lines_without_expand_attributes():
     assert len(parsed_dict["attribute"]) == 2
 
 def test_parse_gtf_lines_error_too_many_fields():
-    bad_gtf_lines = [line.replace(" ", "\t") for line in gtf_lines]
+    bad_gtf_text = gtf_text.replace(" ", "\t")
     # pylint: disable=no-value-for-parameter
     with assert_raises(ParsingError):
-        parse_gtf_lines(bad_gtf_lines)
+        parse_gtf(StringIO(bad_gtf_text))
 
 def test_parse_gtf_lines_error_too_few_fields():
-    bad_gtf_lines = [line.replace("\t", " ") for line in gtf_lines]
+    bad_gtf_text = gtf_text.replace("\t", " ")
     # pylint: disable=no-value-for-parameter
     with assert_raises(ParsingError):
-        parse_gtf_lines(bad_gtf_lines)
+        parse_gtf(StringIO(bad_gtf_text))
