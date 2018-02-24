@@ -199,18 +199,20 @@ def read_gtf(
     # Hackishly infer whether the values in the 'source' column of this GTF
     # are actually representing a biotype by checking for the most common
     # gene_biotype and transcript_biotype value 'protein_coding'
-    if infer_biotype_column and "protein_coding" in result_df["source"]:
-        column_names = set(result_df.columns)
-        # Disambiguate between the two biotypes by checking if
-        # gene_biotype is already present in another column. If it is,
-        # the 2nd column is the transcript_biotype (otherwise, it's the
-        # gene_biotype)
-        if "gene_biotype" not in column_names:
-            logging.info("Using column 'source' to replace missing 'gene_biotype'")
-            result_df["gene_biotype"] = result_df["source"]
-        if "transcript_biotype" not in column_names:
-            logging.info("Using column 'source' to replace missing 'transcript_biotype'")
-            result_df["transcript_biotype"] = result_df["source"]
+    if infer_biotype_column:
+        unique_source_values = set(result_df["source"])
+        if "protein_coding" in unique_source_values:
+            column_names = set(result_df.columns)
+            # Disambiguate between the two biotypes by checking if
+            # gene_biotype is already present in another column. If it is,
+            # the 2nd column is the transcript_biotype (otherwise, it's the
+            # gene_biotype)
+            if "gene_biotype" not in column_names:
+                logging.info("Using column 'source' to replace missing 'gene_biotype'")
+                result_df["gene_biotype"] = result_df["source"]
+            if "transcript_biotype" not in column_names:
+                logging.info("Using column 'source' to replace missing 'transcript_biotype'")
+                result_df["transcript_biotype"] = result_df["source"]
 
     if usecols is not None:
         column_names = set(result_df.columns)
