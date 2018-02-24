@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2016. Mount Sinai School of Medicine
+# Copyright (c) 2015-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,9 @@ from collections import OrderedDict
 from six.moves import intern
 
 from .util import memory_usage
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def expand_attribute_strings(
         attribute_strings,

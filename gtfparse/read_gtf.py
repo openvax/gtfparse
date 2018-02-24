@@ -26,6 +26,9 @@ from .attribute_parsing import expand_attribute_strings
 from .parsing_error import ParsingError
 from .required_columns import REQUIRED_COLUMNS
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 def parse_gtf(filepath_or_buffer, chunksize=1024 * 1024):
     """
     Parameters
