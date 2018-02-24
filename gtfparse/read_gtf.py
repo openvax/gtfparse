@@ -187,7 +187,9 @@ def read_gtf(
         result_df = parse_gtf(result_df)
 
     if usecols is not None:
-        result_df = result_df[list(usecols)]
+        available_columns = result_df.columns
+        valid_columns = [c for c in usecols if c in available_columns]
+        result_df = result_df[valid_columns]
 
     for column_name, column_type in list(column_converters.items()):
         result_df[column_name] = [
