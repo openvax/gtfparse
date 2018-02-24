@@ -12,11 +12,11 @@ Parsing tools for GTF (gene transfer format) files.
 ## Parsing all rows of a GTF file into a Pandas DataFrame
 
 ```python
-from gtfparse import read_gtf_as_dataframe
+from gtfparse import read_gtf
 
 # returns GTF with essential columns such as "feature", "seqname", "start", "end"
 # alongside the names of any optional keys which appeared in the attribute column
-df = read_gtf_as_dataframe("gene_annotations.gtf")
+df = read_gtf("gene_annotations.gtf")
 
 # filter DataFrame to gene entries on chrY
 df_genes = df[df["feature"] == "gene"]
@@ -27,16 +27,16 @@ df_genes_chrY = df_genes[df_genes["seqname"] == "Y"]
 ## Getting gene FPKM values from a StringTie GTF file
 
 ```python
-from gtfparse import read_gtf_as_dict
+from gtfparse import read_gtf
 
-gtf_dict = read_gtf_as_dict(
+df = read_gtf(
     "stringtie-output.gtf",
     column_converters={"FPKM": float})
 
 gene_fpkms = {
     gene_name: fpkm
     for (gene_name, fpkm, feature)
-    in zip(gtf_dict["gene_name"], gtf_dict["FPKM"], gtf_dict["feature"])
+    in zip(df["gene_name"], df["FPKM"], df["feature"])
     if feature == "gene"
 }
 ```

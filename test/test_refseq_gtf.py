@@ -1,4 +1,4 @@
-from gtfparse import read_gtf_as_dict, read_gtf_as_dataframe
+from gtfparse import read_gtf
 from data import data_path
 
 REFSEQ_GTF_PATH = data_path("refseq.ucsc.small.gtf")
@@ -11,10 +11,6 @@ def _check_required_columns(gtf_dict):
     assert "exon" in features, "No exon features in GTF (available: %s)" % features
     assert "CDS" in features, "No CDS features in GTF (available: %s)" % features
 
-def test_read_refseq_gtf_as_dict():
-    gtf_dict = read_gtf_as_dict(REFSEQ_GTF_PATH)
-    _check_required_columns(gtf_dict)
-
 def test_read_refseq_gtf_as_dataframe():
-    gtf_df = read_gtf_as_dataframe(REFSEQ_GTF_PATH)
+    gtf_df = read_gtf(REFSEQ_GTF_PATH)
     _check_required_columns(gtf_df)
