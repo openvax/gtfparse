@@ -1,3 +1,4 @@
+from io import StringIO
 from gtfparse import parse_gtf_and_expand_attributes
 from nose.tools import eq_
 
@@ -12,7 +13,7 @@ GTF_TEXT = (
 )
 
 def test_parse_tag_attributes():
-    parsed = parse_gtf_and_expand_attributes(GTF_TEXT)
+    parsed = parse_gtf_and_expand_attributes(StringIO(GTF_TEXT))
     tag_column = parsed["tag"]
     eq_(len(tag_column), 1)
     tags = tag_column[0]
@@ -20,7 +21,8 @@ def test_parse_tag_attributes():
 
 def test_parse_tag_attributes_with_usecols():
     parsed = parse_gtf_and_expand_attributes(
-        GTF_TEXT, use_attribute_columns=["tag"])
+        StringIO(GTF_TEXT),
+        restrict_attribute_columns=["tag"])
     tag_column = parsed["tag"]
     eq_(len(tag_column), 1)
     tags = tag_column[0]
@@ -28,7 +30,8 @@ def test_parse_tag_attributes_with_usecols():
 
 def test_parse_tag_attributes_with_usecols_other_column():
     parsed = parse_gtf_and_expand_attributes(
-        GTF_TEXT, use_attribute_columns=["exon_id"])
+        StringIO(GTF_TEXT),
+        restrict_attribute_columns=["exon_id"])
     tag_column = parsed.get("tag")
 
     assert tag_column is None, "Expected 'tag' to get dropped but got %s" % (parsed,)

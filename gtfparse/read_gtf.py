@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2016. Mount Sinai School of Medicine
+# Copyright (c) 2015-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@ from __future__ import print_function, division, absolute_import
 import logging
 from os.path import exists
 
+from six import string_types
 from six.moves import intern
 import numpy as np
 import pandas as pd
@@ -25,7 +26,16 @@ from .attribute_parsing import expand_attribute_strings
 from .parsing_error import ParsingError
 from .required_columns import REQUIRED_COLUMNS
 
-def parse_gtf(path, chunksize=1024 * 1024):
+def parse_gtf(filepath_or_buffer, chunksize=1024 * 1024):
+    """
+    Parameters
+    ----------
+
+    filepath_or_buffer : str or buffer object
+
+    chunksize : int
+    """
+
     logging.debug("Memory usage before GTF parsing: %0.4f MB" % memory_usage())
     dataframes = []
 
@@ -63,7 +73,7 @@ def parse_gtf(path, chunksize=1024 * 1024):
     # (see more complete description in docstring at top of file)
 
     chunk_iterator = pd.read_csv(
-        path,
+        filepath_or_buffer,
         sep="\t",
         comment="#",
         names=REQUIRED_COLUMNS,
@@ -71,7 +81,7 @@ def parse_gtf(path, chunksize=1024 * 1024):
         skip_blank_lines=True,
         error_bad_lines=True,
         warn_bad_lines=True,
-        chunksize=1024 * 1024,
+        chunksize=chunksize,
         engine="c",
         dtype={
             "start": np.int64,
@@ -99,7 +109,10 @@ def parse_gtf(path, chunksize=1024 * 1024):
     return df
 
 
-def parse_gtf_and_expand_attributes(path, use_attribute_columns=None):
+def parse_gtf_and_expand_attributes(
+        filepath_or_buffer,
+        chunksize=1024 * 1024,
+        restrict_attribute_columns=None):
     """
     Parse lines into column->values dictionary and then expand
     the 'attribute' column into multiple columns. This expansion happens
@@ -109,34 +122,37 @@ def parse_gtf_and_expand_attributes(path, use_attribute_columns=None):
 
     Parameters
     ----------
-    lines : list or generator
+    filepath_or_buffer : str or buffer object
 
-    use_attribute_columns : list/set of str or None
+    chunksize : int
+
+    restrict_attribute_columns : list/set of str or None
         If given, then only usese attribute columns.
     """
-    result = parse_gtf(path)
+    result = parse_gtf(filepath_or_buffer, chunksize=chunksize)
     attribute_values = result["attribute"]
     del result["attribute"]
     for column_name, values in expand_attribute_strings(
-            attribute_values, usecols=use_attribute_columns).items():
+            attribute_values, usecols=restrict_attribute_columns).items():
         result[column_name] = values
     return result
 
 
 def read_gtf(
-        filename,
+        filepath_or_buffer,
         expand_attribute_column=True,
         infer_biotype_column=False,
         column_converters={},
         usecols=None,
-        buffer_size=1024 * 1024):
+        chunksize=1024 * 1024):
     """
     Parse a GTF into a dictionary mapping column names to sequences of values.
 
     Parameters
     ----------
-    filename : str
-        Name of GTF file (may be gzip compressed)
+    filepath_or_buffer : str or buffer object
+        Path to GTF file (may be gzip compressed) or buffer object
+        such as StringIO
 
     expand_attribute_column : bool
         Replace strings of semi-colon separated key-value values in the
@@ -157,18 +173,18 @@ def read_gtf(
         Restrict which columns are loaded to the give set. If None, then
         load all columns.
 
-    buffer_size : int
-        Memory buffer size to use for chunks read from file
+    chunksize : int
     """
-    if not exists(filename):
-        raise ValueError("GTF file does not exist: %s" % filename)
+    if isinstance(filepath_or_buffer, string_types) and not exists(filepath_or_buffer):
+        raise ValueError("GTF file does not exist: %s" % filepath_or_buffer)
 
     if expand_attribute_column:
         result_df = parse_gtf_and_expand_attributes(
-            filename,
-            use_attribute_columns=usecols)
+            filepath_or_buffer,
+            chunksize=chunksize,
+            restrict_attribute_columns=usecols)
     else:
-        result_df = parse_gtf(result_df, usecols=usecols)
+        result_df = parse_gtf(result_df)
 
     if usecols is not None:
         result_df = result_df[list(usecols)]
