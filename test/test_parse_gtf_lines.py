@@ -6,7 +6,7 @@ from gtfparse import (
     REQUIRED_COLUMNS,
     ParsingError
 )
-from io import StringIO
+from six import StringIO
 
 gtf_text = """
 # sample GTF data copied from:
