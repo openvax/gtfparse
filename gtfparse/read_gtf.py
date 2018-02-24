@@ -186,17 +186,15 @@ def read_gtf(
     else:
         result_df = parse_gtf(result_df)
 
-    if usecols is not None:
-        available_columns = result_df.columns
-        valid_columns = [c for c in usecols if c in available_columns]
-        result_df = result_df[valid_columns]
-
     for column_name, column_type in list(column_converters.items()):
         result_df[column_name] = [
             column_type(string_value) if len(string_value) > 0 else None
             for string_value
             in result_df[column_name]
         ]
+
+    column_names = set(result_df.columns)
+
     # Hackishly infer whether the values in the 'source' column of this GTF
     # are actually representing a biotype by checking for the most common
     # gene_biotype and transcript_biotype value 'protein_coding'
@@ -205,10 +203,13 @@ def read_gtf(
         # gene_biotype is already present in another column. If it is,
         # the 2nd column is the transcript_biotype (otherwise, it's the
         # gene_biotype)
-        column_names = set(result_df.columns)
         if "gene_biotype" not in column_names:
             result_df["gene_biotype"] = result_df["source"]
         if "transcript_biotype" not in column_names:
             result_df["transcript_biotype"] = result_df["source"]
+
+    if usecols is not None:
+        valid_columns = [c for c in usecols if c in column_names]
+        result_df = result_df[valid_columns]
 
     return result_df

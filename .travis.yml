@@ -51,4 +51,4 @@ deploy:
     secure: "lNFheXNLXUin0p+1LUHpE6CPvLnv0WyaTW7nW+r3gbleI8AocJ3cbJPBExOioTLnyEw+hQsq/aJqaz4eeNoEwJKJi3OasuUuQf3sqF/ujOLTcap09NIknPIJBf0lseh1zQgEZr/ov18kiscY/nPKbXPqoGOINEyMEqYP+Cciiq3FokSD++BU1n55RpH4iya3//DmxuOlkgU0Idxv9KAPy13YP3eymPTix1NkEDwDVglevW4bpZqXjA2iQMzQg0HpwsfkvasrGQ6UZCyg/ukxMfuNna0Ws40frq8xrYz4NROrepwLZ+9XGpPY3/ts3EvMYURDmucAyqcdPmxoBXaKtFsg/C/4Dhqh0l/agXhls0hf9BjSuaZT+mWPXtB9LEjkoHFUIvsxGN53N9xoPABuhjudAJdbAr40/GWTnvJlkULmAJ+ZVHb7GHA39Xsk/Efys27vZeTpM8xjwtCaJ0i61FjWeJP09Rd9bk6QwrpbjjnuwpRl5qyJv9jSi8H+oMaxOWFaSDYEMPyhV3pjtXaGo2CgR8ypYg1g9EuqVmScP9N2L5YzhYmCzan7peqMhDqQFJwPjO5Ger99a5E88yytpqW3PhQG/5AJEV+d/ZGvn71FAnC+cEPJqy2+jrsRw0a04AMmJya2udRJMuzixnBvwbvc7BMNx0xis7LJxDgmOFg="
   on:
     branch: master
-    condition: $TRAVIS_PYTHON_VERSION = "2.7"
+    condition: $TRAVIS_PYTHON_VERSION = "3.6"
