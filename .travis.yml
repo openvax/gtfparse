@@ -10,14 +10,14 @@ git:
   # https://github.com/travis-ci/travis-ci/issues/4575
   depth: 10
 cache:
+  pip: true
   directories:
-    - $HOME/.cache/pip
     - $HOME/miniconda
 before_install:
   # don't install miniconda if it's already cached
   # if not yet installed, use different versions for py2 vs. py3
   - |
-    if [ -f  $HOME/miniconda/bin ];
+    if [ -d  $HOME/miniconda/bin ];
       then
       echo "miniconda already installed"
     else
@@ -28,8 +28,8 @@ before_install:
         wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
       fi
       bash miniconda.sh -b -p $HOME/miniconda
-      export PATH="$HOME/miniconda/bin:$PATH"
     fi
+  - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
