@@ -29,7 +29,12 @@ from .required_columns import REQUIRED_COLUMNS
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def parse_gtf(filepath_or_buffer, chunksize=1024 * 1024):
+def parse_gtf(
+        filepath_or_buffer,
+        chunksize=1024 * 1024,
+        features=None,
+        intern_columns=["seqname", "source", "strand", "frame"],
+        fix_quotes_columns=["attribute"]):
     """
     Parameters
     ----------
@@ -37,26 +42,29 @@ def parse_gtf(filepath_or_buffer, chunksize=1024 * 1024):
     filepath_or_buffer : str or buffer object
 
     chunksize : int
+
+    features : set or None
+        Drop entries which aren't one of these features
+
+    intern_columns : list
+        These columns are short strings which should be interned
+
+    fix_quotes_columns : list
+        Most commonly the 'attribute' column which had broken quotes on
+        some Ensembl release GTF files.
     """
 
     logging.debug("Memory usage before GTF parsing: %0.4f MB" % memory_usage())
+    if features is not None:
+        features = set(features)
+
     dataframes = []
 
-    def intern_str(s):
-        return intern(str(s))
-
-    def intern_frame(s):
+    def parse_frame(s):
         if s == ".":
             return 0
         else:
             return int(s)
-
-    def fix_attribute_quotes(attr):
-        # Catch mistaken semicolons by replacing "xyz;" with "xyz"
-        # Required to do this since the Ensembl GTF for Ensembl release 78 has
-        # gene_name = "PRAMEF6;"
-        # transcript_name = "PRAMEF6;-201"
-        return attr.replace(';\"', '\"').replace(";-", "-")
 
     # GTF columns:
     # 1) seqname: str ("1", "X", "chrX", etc...)
@@ -92,17 +100,26 @@ def parse_gtf(filepath_or_buffer, chunksize=1024 * 1024):
             "score": np.float32,
         },
         na_values=".",
-        converters={
-            "seqname": intern_str,
-            "source": intern_str,
-            "feature": intern_str,
-            "strand": intern_str,
-            "attribute": fix_attribute_quotes,
-            "frame": intern_frame,
-        })
+        converters={"frame": parse_frame})
     dataframes = []
     try:
         for df in chunk_iterator:
+            for intern_column in intern_columns:
+                df[intern_column] = [intern(str(s)) for s in df[intern_column]]
+
+            # compare feature strings after interning
+            if features is not None:
+                df = df[df["feature"].isin(features)]
+
+            for fix_quotes_column in fix_quotes_columns:
+                # Catch mistaken semicolons by replacing "xyz;" with "xyz"
+                # Required to do this since the Ensembl GTF for Ensembl
+                # release 78 has mistakes such as:
+                #   gene_name = "PRAMEF6;" transcript_name = "PRAMEF6;-201"
+                df[fix_quotes_column] = [
+                    s.replace(';\"', '\"').replace(";-", "-")
+                    for s in df[fix_quotes_column]
+                ]
             dataframes.append(df)
     except Exception as e:
         raise ParsingError(str(e))
@@ -115,7 +132,8 @@ def parse_gtf(filepath_or_buffer, chunksize=1024 * 1024):
 def parse_gtf_and_expand_attributes(
         filepath_or_buffer,
         chunksize=1024 * 1024,
-        restrict_attribute_columns=None):
+        restrict_attribute_columns=None,
+        features=None):
     """
     Parse lines into column->values dictionary and then expand
     the 'attribute' column into multiple columns. This expansion happens
@@ -131,8 +149,14 @@ def parse_gtf_and_expand_attributes(
 
     restrict_attribute_columns : list/set of str or None
         If given, then only usese attribute columns.
+
+    features : set or None
+        Ignore entries which don't correspond to one of the supplied features
     """
-    result = parse_gtf(filepath_or_buffer, chunksize=chunksize)
+    result = parse_gtf(
+        filepath_or_buffer,
+        chunksize=chunksize,
+        features=features)
     attribute_values = result["attribute"]
     del result["attribute"]
     for column_name, values in expand_attribute_strings(
@@ -147,6 +171,7 @@ def read_gtf(
         infer_biotype_column=False,
         column_converters={},
         usecols=None,
+        features=None,
         chunksize=1024 * 1024):
     """
     Parse a GTF into a dictionary mapping column names to sequences of values.
@@ -187,7 +212,7 @@ def read_gtf(
             chunksize=chunksize,
             restrict_attribute_columns=usecols)
     else:
-        result_df = parse_gtf(result_df)
+        result_df = parse_gtf(result_df, features=features)
 
     for column_name, column_type in list(column_converters.items()):
         result_df[column_name] = [
