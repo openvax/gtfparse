@@ -201,6 +201,9 @@ def read_gtf(
         Restrict which columns are loaded to the give set. If None, then
         load all columns.
 
+    features : set of str or None
+        Drop rows which aren't one of the features in the supplied set
+
     chunksize : int
     """
     if isinstance(filepath_or_buffer, string_types) and not exists(filepath_or_buffer):
