@@ -98,6 +98,7 @@ def parse_gtf(
             "start": np.int64,
             "end": np.int64,
             "score": np.float32,
+            "seqname": str,
         },
         na_values=".",
         converters={"frame": parse_frame})
