@@ -21,13 +21,13 @@ from six.moves import intern
 import numpy as np
 import pandas as pd
 
-from .util import memory_usage
 from .attribute_parsing import expand_attribute_strings
 from .parsing_error import ParsingError
 from .required_columns import REQUIRED_COLUMNS
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def parse_gtf(
         filepath_or_buffer,
@@ -53,8 +53,6 @@ def parse_gtf(
         Most commonly the 'attribute' column which had broken quotes on
         some Ensembl release GTF files.
     """
-
-    logging.debug("Memory usage before GTF parsing: %0.4f MB" % memory_usage())
     if features is not None:
         features = set(features)
 
@@ -124,9 +122,7 @@ def parse_gtf(
             dataframes.append(df)
     except Exception as e:
         raise ParsingError(str(e))
-    logging.debug("Memory usage after GTF parsing: %0.4f MB" % memory_usage())
     df = pd.concat(dataframes)
-    logging.debug("Memory usage after concatenating final result: %0.4f MB" % memory_usage())
     return df
 
 

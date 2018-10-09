@@ -18,10 +18,9 @@ from collections import OrderedDict
 
 from six.moves import intern
 
-from .util import memory_usage
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def expand_attribute_strings(
         attribute_strings,
@@ -51,9 +50,6 @@ def expand_attribute_strings(
     Returns OrderedDict of column->value list mappings, in the order they
     appeared in the attribute strings.
     """
-    logging.debug(
-        "Memory usage before expanding GTF attributes: %0.4f MB" % (
-            memory_usage(),))
     n = len(attribute_strings)
 
     extra_columns = {}
@@ -119,9 +115,6 @@ def expand_attribute_strings(
             else:
                 column[i] = "%s,%s" % (old_value, value)
 
-    logging.debug(
-        "Memory usage after expanding GTF attributes: %0.4f MB" % (
-            memory_usage(),))
     logging.info("Extracted GTF attributes: %s" % column_order)
     return OrderedDict(
         (column_name, extra_columns[column_name])
