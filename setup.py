@@ -1,5 +1,3 @@
-# Copyright (c) 2015-2018. Mount Sinai School of Medicine
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -30,14 +28,6 @@ except Exception as e:
     print(e)
     print("Failed to open %s" % readme_path)
 
-try:
-    import pypandoc
-    readme_restructured = pypandoc.convert(readme_markdown, to='rst', format='md')
-except Exception as e:
-    readme_restructured = readme_markdown
-    print(e)
-    print("Failed to convert %s from Markdown to reStructuredText" % readme_filename)
-
 with open('gtfparse/__init__.py', 'r') as f:
     version = re.search(
         r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
@@ -50,7 +40,8 @@ if __name__ == '__main__':
         packages=find_packages(),
         version=version,
         description="GTF Parsing",
-        long_description=readme_restructured,
+        long_description=readme_markdown,
+        long_description_content_type='text/markdown',
         url="https://github.com/openvax/gtfparse",
         author="Alex Rubinsteyn",
         license="http://www.apache.org/licenses/LICENSE-2.0.html",
@@ -64,7 +55,7 @@ if __name__ == '__main__':
             'Topic :: Scientific/Engineering :: Bio-Informatics',
         ],
         install_requires=[
-            'numpy>=1.7, <2.0',
+            'numpy>=1.7',
             'pandas>=0.15',
         ],
     )
