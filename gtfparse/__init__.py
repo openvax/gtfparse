@@ -1,5 +1,3 @@
-# Copyright (c) 2015. Mount Sinai School of Medicine
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -18,7 +16,7 @@ from .required_columns import REQUIRED_COLUMNS
 from .parsing_error import ParsingError
 from .read_gtf import read_gtf, parse_gtf, parse_gtf_and_expand_attributes
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 __all__ = [
     "expand_attribute_strings",
