@@ -30,13 +30,13 @@ df_genes_chrY = df_genes[df_genes["seqname"] == "Y"]
 from gtfparse import read_gtf
 
 df = read_gtf(
-    "stringtie-output.gtf",
+    "Transcripts.gtf",
     column_converters={"FPKM": float})
 
 gene_fpkms = {
     gene_name: fpkm
     for (gene_name, fpkm, feature)
-    in zip(df["gene_name"], df["FPKM"], df["feature"])
+    in zip(df["seqname"], df["FPKM"], df["feature"])
     if feature == "gene"
 }
 ```
