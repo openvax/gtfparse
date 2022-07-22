@@ -86,8 +86,7 @@ def parse_gtf(
         names=REQUIRED_COLUMNS,
         skipinitialspace=True,
         skip_blank_lines=True,
-        error_bad_lines=True,
-        warn_bad_lines=True,
+        on_bad_lines='error',
         chunksize=chunksize,
         engine="c",
         dtype={
