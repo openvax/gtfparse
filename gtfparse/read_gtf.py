@@ -86,8 +86,7 @@ def parse_gtf(
         names=REQUIRED_COLUMNS,
         skipinitialspace=True,
         skip_blank_lines=True,
-        error_bad_lines=True,
-        warn_bad_lines=True,
+        on_bad_lines="error",
         chunksize=chunksize,
         engine="c",
         dtype={
@@ -208,7 +207,8 @@ def read_gtf(
         result_df = parse_gtf_and_expand_attributes(
             filepath_or_buffer,
             chunksize=chunksize,
-            restrict_attribute_columns=usecols)
+            restrict_attribute_columns=usecols,
+            features=features)
     else:
         result_df = parse_gtf(result_df, features=features)
 
