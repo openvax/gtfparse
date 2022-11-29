@@ -10,12 +10,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
 import logging
 from os.path import exists
 
-from six import string_types
-from six.moves import intern
+from sys import intern
 import numpy as np
 import pandas as pd
 
@@ -200,7 +198,7 @@ def read_gtf(
 
     chunksize : int
     """
-    if isinstance(filepath_or_buffer, string_types) and not exists(filepath_or_buffer):
+    if type(filepath_or_buffer) is str and not exists(filepath_or_buffer):
         raise ValueError("GTF file does not exist: %s" % filepath_or_buffer)
 
     if expand_attribute_column:

@@ -28,7 +28,7 @@ except Exception as e:
     print(e)
     print("Failed to open %s" % readme_path)
 
-with open('gtfparse/__init__.py', 'r') as f:
+with open('gtfparse/version.py', 'r') as f:
     version = re.search(
         r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
         f.read(),
