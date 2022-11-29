@@ -10,11 +10,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
 import logging
 from collections import OrderedDict
-
-from six.moves import intern
+from sys import intern
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
