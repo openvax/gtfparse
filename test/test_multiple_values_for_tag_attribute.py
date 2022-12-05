@@ -1,6 +1,5 @@
 from six import StringIO
 from gtfparse import parse_gtf_and_expand_attributes
-from nose.tools import eq_
 
 # failing example from https://github.com/openvax/gtfparse/issues/2
 GTF_TEXT = (
@@ -15,18 +14,18 @@ GTF_TEXT = (
 def test_parse_tag_attributes():
     parsed = parse_gtf_and_expand_attributes(StringIO(GTF_TEXT))
     tag_column = parsed["tag"]
-    eq_(len(tag_column), 1)
+    assert len(tag_column) == 1
     tags = tag_column[0]
-    eq_(tags, 'cds_end_NF,mRNA_end_NF')
+    assert tags == 'cds_end_NF,mRNA_end_NF'
 
 def test_parse_tag_attributes_with_usecols():
     parsed = parse_gtf_and_expand_attributes(
         StringIO(GTF_TEXT),
         restrict_attribute_columns=["tag"])
     tag_column = parsed["tag"]
-    eq_(len(tag_column), 1)
+    assert len(tag_column) == 1
     tags = tag_column[0]
-    eq_(tags, 'cds_end_NF,mRNA_end_NF')
+    assert tags == 'cds_end_NF,mRNA_end_NF'
 
 def test_parse_tag_attributes_with_usecols_other_column():
     parsed = parse_gtf_and_expand_attributes(
