@@ -13,9 +13,7 @@
 import logging
 from os.path import exists
 
-from sys import intern
-import numpy as np
-import pandas as pd
+import polars 
 
 from .attribute_parsing import expand_attribute_strings
 from .parsing_error import ParsingError
@@ -24,106 +22,93 @@ from .required_columns import REQUIRED_COLUMNS
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# GTF columns:
+# 1) seqname: str ("1", "X", "chrX", etc...)
+# 2) source : str
+#      Different versions of GTF use second column as of:
+#      (a) gene biotype
+#      (b) transcript biotype
+#      (c) the annotation source
+#      See: https://www.biostars.org/p/120306/#120321
+# 3) feature : str ("gene", "transcript", &c)
+# 4) start : int
+# 5) end : int
+# 6) score : float or "."
+# 7) strand : "+", "-", or "."
+# 8) frame : 0, 1, 2 or "."
+# 9) attribute : key-value pairs separated by semicolons
+# (see more complete description in docstring at top of file)
+
+def read_with_polars_lazy(
+        filepath_or_buffer,
+        split_attributes=True,
+        features=None,
+        fix_quotes_columns=["attribute"]):
+    df_lazy = polars.scan_csv(
+        filepath_or_buffer,
+        has_header=False,
+        sep="\t",
+        comment_char="#",
+        null_values=".",
+        with_column_names=lambda cols: REQUIRED_COLUMNS,
+        dtypes={
+            "start": polars.Int64,
+            "end": polars.Int64,
+            "score": polars.Float32,
+            "seqname": polars.Categorical, 
+            "source": polars.Categorical, 
+            "feature": polars.Categorical, 
+            "strand": polars.Categorical, 
+            "frame": polars.UInt32,
+        }).with_columns([
+            polars.col("frame").fill_null(0)
+        ])
+    if split_attributes:
+        df_lazy = df_lazy.with_columns([
+            polars.col("attribute").str.split("; ")
+        ])
+    for fix_quotes_column in fix_quotes_columns:
+        # Catch mistaken semicolons by replacing "xyz;" with "xyz"
+        # Required to do this since the Ensembl GTF for Ensembl
+        # release 78 has mistakes such as:
+        #   gene_name = "PRAMEF6;" transcript_name = "PRAMEF6;-201"
+        df_lazy = df_lazy.with_columns([
+            polars.col(fix_quotes_column).str.replace(';\"', '\"').str.replace(";-", "-")
+        ])
+
+    if features is not None:
+        features = sorted(set(features))
+        df_lazy = df_lazy.filter(polars.col("feature").is_in(features))
+
+    return df_lazy.with_columns([
+        polars.col("frame").fill_null(0), 
+        polars.col("attribute").str.replace_all('"', "'")])
+
+
+def read_with_polars_eager(
+        filepath_or_buffer, 
+        split_attributes=True, 
+        features=None,
+        fix_quotes_columns=["attribute"]):
+    df_lazy = read_with_polars_lazy(
+        filepath_or_buffer=filepath_or_buffer,
+        split_attributes=split_attributes,
+        features=features,
+        fix_quotes_columns=fix_quotes_columns)
+    return df_lazy.collect()
 
 def parse_gtf(
         filepath_or_buffer,
-        chunksize=1024 * 1024,
         features=None,
-        intern_columns=["seqname", "source", "strand", "frame"],
         fix_quotes_columns=["attribute"]):
-    """
-    Parameters
-    ----------
-
-    filepath_or_buffer : str or buffer object
-
-    chunksize : int
-
-    features : set or None
-        Drop entries which aren't one of these features
-
-    intern_columns : list
-        These columns are short strings which should be interned
-
-    fix_quotes_columns : list
-        Most commonly the 'attribute' column which had broken quotes on
-        some Ensembl release GTF files.
-    """
-    if features is not None:
-        features = set(features)
-
-    dataframes = []
-
-    def parse_frame(s):
-        if s == ".":
-            return 0
-        else:
-            return int(s)
-
-    # GTF columns:
-    # 1) seqname: str ("1", "X", "chrX", etc...)
-    # 2) source : str
-    #      Different versions of GTF use second column as of:
-    #      (a) gene biotype
-    #      (b) transcript biotype
-    #      (c) the annotation source
-    #      See: https://www.biostars.org/p/120306/#120321
-    # 3) feature : str ("gene", "transcript", &c)
-    # 4) start : int
-    # 5) end : int
-    # 6) score : float or "."
-    # 7) strand : "+", "-", or "."
-    # 8) frame : 0, 1, 2 or "."
-    # 9) attribute : key-value pairs separated by semicolons
-    # (see more complete description in docstring at top of file)
-
-    chunk_iterator = pd.read_csv(
-        filepath_or_buffer,
-        sep="\t",
-        comment="#",
-        names=REQUIRED_COLUMNS,
-        skipinitialspace=True,
-        skip_blank_lines=True,
-        on_bad_lines="error",
-        chunksize=chunksize,
-        engine="c",
-        dtype={
-            "start": np.int64,
-            "end": np.int64,
-            "score": np.float32,
-            "seqname": str,
-        },
-        na_values=".",
-        converters={"frame": parse_frame})
-    dataframes = []
-    try:
-        for df in chunk_iterator:
-            for intern_column in intern_columns:
-                df[intern_column] = [intern(str(s)) for s in df[intern_column]]
-
-            # compare feature strings after interning
-            if features is not None:
-                df = df[df["feature"].isin(features)]
-
-            for fix_quotes_column in fix_quotes_columns:
-                # Catch mistaken semicolons by replacing "xyz;" with "xyz"
-                # Required to do this since the Ensembl GTF for Ensembl
-                # release 78 has mistakes such as:
-                #   gene_name = "PRAMEF6;" transcript_name = "PRAMEF6;-201"
-                df[fix_quotes_column] = [
-                    s.replace(';\"', '\"').replace(";-", "-")
-                    for s in df[fix_quotes_column]
-                ]
-            dataframes.append(df)
-    except Exception as e:
-        raise ParsingError(str(e))
-    df = pd.concat(dataframes)
-    return df
+    return read_with_polars_eager(
+        filepath_or_buffer=filepath_or_buffer, 
+        features=features, 
+        fix_quotes_columns=fix_quotes_columns).to_pandas()
 
 
 def parse_gtf_and_expand_attributes(
         filepath_or_buffer,
-        chunksize=1024 * 1024,
         restrict_attribute_columns=None,
         features=None):
     """
@@ -145,17 +130,16 @@ def parse_gtf_and_expand_attributes(
     features : set or None
         Ignore entries which don't correspond to one of the supplied features
     """
-    result = parse_gtf(
-        filepath_or_buffer,
-        chunksize=chunksize,
+    df = parse_gtf(
+        filepath_or_buffer=filepath_or_buffer, 
         features=features)
-    attribute_values = result["attribute"]
-    del result["attribute"]
-    for column_name, values in expand_attribute_strings(
-            attribute_values, usecols=restrict_attribute_columns).items():
-        result[column_name] = values
-    return result
-
+    attribute_pairs = df["attribute"]
+    del df["attribute"]
+    for (attr, values) in expand_attribute_strings(attribute_pairs).items():
+        if not restrict_attribute_columns or attr in restrict_attribute_columns:
+            df[attr] = values
+    return df
+    
 
 def read_gtf(
         filepath_or_buffer,
@@ -163,8 +147,7 @@ def read_gtf(
         infer_biotype_column=False,
         column_converters={},
         usecols=None,
-        features=None,
-        chunksize=1024 * 1024):
+        features=None):
     """
     Parse a GTF into a dictionary mapping column names to sequences of values.
 
@@ -196,7 +179,6 @@ def read_gtf(
     features : set of str or None
         Drop rows which aren't one of the features in the supplied set
 
-    chunksize : int
     """
     if type(filepath_or_buffer) is str and not exists(filepath_or_buffer):
         raise ValueError("GTF file does not exist: %s" % filepath_or_buffer)
@@ -204,7 +186,6 @@ def read_gtf(
     if expand_attribute_column:
         result_df = parse_gtf_and_expand_attributes(
             filepath_or_buffer,
-            chunksize=chunksize,
             restrict_attribute_columns=usecols,
             features=features)
     else:

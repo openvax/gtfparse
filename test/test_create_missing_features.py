@@ -1,5 +1,5 @@
 from gtfparse import create_missing_features, parse_gtf_and_expand_attributes
-from six import StringIO
+from io import StringIO
 
 # two lines from the Ensembl 54 human GTF containing only a stop_codon and
 # exon features, but from which gene and transcript information could be
