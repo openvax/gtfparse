@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def expand_attribute_strings(
         attribute_strings,
-        quote_char='\"',
+        quote_char="'",
         missing_value="",
         usecols=None):
     """
@@ -68,7 +68,9 @@ def expand_attribute_strings(
     value_interned_strings = {}
 
     for (i, kv_strings) in enumerate(attribute_strings):
-        for kv in kv_strings.split(";"):
+        if type(kv_strings) is str:
+            kv_strings = kv_strings.split(";")
+        for kv in kv_strings:
             # We're slicing the first two elements out of split() because
             # Ensembl release 79 added values like:
             #   transcript_support_level "1 (assigned to previous version 5)";

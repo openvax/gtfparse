@@ -41,7 +41,7 @@ def test_parse_gtf_lines_with_expand_attributes():
 
 
 def test_parse_gtf_lines_without_expand_attributes():
-    parsed_dict = parse_gtf(StringIO(gtf_text))
+    parsed_dict = parse_gtf(StringIO(gtf_text), split_attributes=False)
 
     # convert to list since Py3's dictionary keys are a distinct collection type
     eq_(list(parsed_dict.keys()), REQUIRED_COLUMNS)
@@ -53,12 +53,6 @@ def test_parse_gtf_lines_without_expand_attributes():
     scores = list(parsed_dict["score"])
     assert np.isnan(scores).all(), "Unexpected scores: %s" % scores
     assert len(parsed_dict["attribute"]) == 2
-
-def test_parse_gtf_lines_error_too_many_fields():
-    bad_gtf_text = gtf_text.replace(" ", "\t")
-    # pylint: disable=no-value-for-parameter
-    with assert_raises(ParsingError):
-        parse_gtf(StringIO(bad_gtf_text))
 
 def test_parse_gtf_lines_error_too_few_fields():
     bad_gtf_text = gtf_text.replace("\t", " ")

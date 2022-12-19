@@ -12,78 +12,138 @@
 
 import logging
 from os.path import exists
+from io import StringIO
+import gzip 
 
 import polars 
 
 from .attribute_parsing import expand_attribute_strings
 from .parsing_error import ParsingError
-from .required_columns import REQUIRED_COLUMNS
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# GTF columns:
-# 1) seqname: str ("1", "X", "chrX", etc...)
-# 2) source : str
-#      Different versions of GTF use second column as of:
-#      (a) gene biotype
-#      (b) transcript biotype
-#      (c) the annotation source
-#      See: https://www.biostars.org/p/120306/#120321
-# 3) feature : str ("gene", "transcript", &c)
-# 4) start : int
-# 5) end : int
-# 6) score : float or "."
-# 7) strand : "+", "-", or "."
-# 8) frame : 0, 1, 2 or "."
-# 9) attribute : key-value pairs separated by semicolons
-# (see more complete description in docstring at top of file)
+
+"""
+Columns of a GTF file:
+
+    seqname   - name of the chromosome or scaffold; chromosome names
+                without a 'chr' in Ensembl (but sometimes with a 'chr'
+                elsewhere)
+    source    - name of the program that generated this feature, or
+                the data source (database or project name)
+    feature   - feature type name.
+                Features currently in Ensembl GTFs:
+                    gene
+                    transcript
+                    exon
+                    CDS
+                    Selenocysteine
+                    start_codon
+                    stop_codon
+                    UTR
+                Older Ensembl releases may be missing some of these features.
+    start     - start position of the feature, with sequence numbering
+                starting at 1.
+    end       - end position of the feature, with sequence numbering
+                starting at 1.
+    score     - a floating point value indiciating the score of a feature
+    strand    - defined as + (forward) or - (reverse).
+    frame     - one of '0', '1' or '2'. Frame indicates the number of base pairs
+                before you encounter a full codon. '0' indicates the feature
+                begins with a whole codon. '1' indicates there is an extra
+                base (the 3rd base of the prior codon) at the start of this feature.
+                '2' indicates there are two extra bases (2nd and 3rd base of the
+                prior exon) before the first codon. All values are given with
+                relation to the 5' end.
+    attribute - a semicolon-separated list of tag-value pairs (separated by a space),
+                providing additional information about each feature. A key can be
+                repeated multiple times.
+
+(from ftp://ftp.ensembl.org/pub/release-75/gtf/homo_sapiens/README)
+"""
+
+REQUIRED_COLUMNS = [
+    "seqname",
+    "source",
+    "feature",
+    "start",
+    "end",
+    "score",
+    "strand",
+    "frame",
+    "attribute",
+]
+
 
 def read_with_polars_lazy(
         filepath_or_buffer,
         split_attributes=True,
         features=None,
         fix_quotes_columns=["attribute"]):
-    df_lazy = polars.scan_csv(
-        filepath_or_buffer,
+    kwargs = dict(
         has_header=False,
         sep="\t",
         comment_char="#",
         null_values=".",
-        with_column_names=lambda cols: REQUIRED_COLUMNS,
         dtypes={
+            "seqname": polars.Categorical, 
+            "source": polars.Categorical, 
+            
             "start": polars.Int64,
             "end": polars.Int64,
             "score": polars.Float32,
-            "seqname": polars.Categorical, 
-            "source": polars.Categorical, 
+
             "feature": polars.Categorical, 
             "strand": polars.Categorical, 
             "frame": polars.UInt32,
-        }).with_columns([
-            polars.col("frame").fill_null(0)
-        ])
-    if split_attributes:
-        df_lazy = df_lazy.with_columns([
-            polars.col("attribute").str.split("; ")
-        ])
+        })
+    try:
+        if type(filepath_or_buffer) is StringIO:
+            df = polars.read_csv(
+                filepath_or_buffer,
+                new_columns=REQUIRED_COLUMNS,
+                **kwargs).lazy()
+        elif filepath_or_buffer.endswith(".gz") or filepath_or_buffer.endswith(".gzip"):
+            with gzip.open(filepath_or_buffer) as f:
+                df = polars.read_csv(
+                    f,
+                    new_columns=REQUIRED_COLUMNS,
+                    **kwargs).lazy()
+        else:
+            df = polars.scan_csv(
+                filepath_or_buffer, 
+                with_column_names=lambda cols: REQUIRED_COLUMNS,
+                **kwargs).lazy()
+    except polars.ShapeError:
+        raise ParsingError("Wrong number of columns")
+
+    df = df.with_columns([
+        polars.col("frame").fill_null(0),
+        polars.col("attribute").str.replace_all('"', "'")
+    ])
+        
     for fix_quotes_column in fix_quotes_columns:
         # Catch mistaken semicolons by replacing "xyz;" with "xyz"
         # Required to do this since the Ensembl GTF for Ensembl
         # release 78 has mistakes such as:
         #   gene_name = "PRAMEF6;" transcript_name = "PRAMEF6;-201"
-        df_lazy = df_lazy.with_columns([
+        df = df.with_columns([
             polars.col(fix_quotes_column).str.replace(';\"', '\"').str.replace(";-", "-")
         ])
 
     if features is not None:
         features = sorted(set(features))
-        df_lazy = df_lazy.filter(polars.col("feature").is_in(features))
+        df = df.filter(polars.col("feature").is_in(features))
 
-    return df_lazy.with_columns([
-        polars.col("frame").fill_null(0), 
-        polars.col("attribute").str.replace_all('"', "'")])
 
+    if split_attributes:
+        df = df.with_columns([
+            polars.col("attribute").str.split(";").alias("attribute_split")
+        ])
+    return df
+    
 
 def read_with_polars_eager(
         filepath_or_buffer, 
@@ -100,12 +160,14 @@ def read_with_polars_eager(
 def parse_gtf(
         filepath_or_buffer,
         features=None,
-        fix_quotes_columns=["attribute"]):
-    return read_with_polars_eager(
+        fix_quotes_columns=["attribute"],
+        split_attributes=True):
+    df = read_with_polars_eager(
         filepath_or_buffer=filepath_or_buffer, 
         features=features, 
-        fix_quotes_columns=fix_quotes_columns).to_pandas()
-
+        fix_quotes_columns=fix_quotes_columns,
+        split_attributes=split_attributes).to_pandas()
+    return df
 
 def parse_gtf_and_expand_attributes(
         filepath_or_buffer,
@@ -132,9 +194,12 @@ def parse_gtf_and_expand_attributes(
     """
     df = parse_gtf(
         filepath_or_buffer=filepath_or_buffer, 
-        features=features)
-    attribute_pairs = df["attribute"]
-    del df["attribute"]
+        features=features,
+        split_attributes=True)
+    attribute_pairs = df["attribute_split"]
+    df.drop('attribute', axis=1, inplace=True) 
+    df.drop('attribute_split', axis=1, inplace=True) 
+
     for (attr, values) in expand_attribute_strings(attribute_pairs).items():
         if not restrict_attribute_columns or attr in restrict_attribute_columns:
             df[attr] = values
