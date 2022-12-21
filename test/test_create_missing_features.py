@@ -18,7 +18,7 @@ GTF_TEXT = "\n".join([
 ])
 
 
-GTF_DATAFRAME = parse_gtf_and_expand_attributes(StringIO(GTF_TEXT))
+GTF_DATAFRAME = parse_gtf_and_expand_attributes(StringIO(GTF_TEXT)).to_pandas()
 
 def test_create_missing_features_identity():
     df_should_be_same = create_missing_features(GTF_DATAFRAME, {})
