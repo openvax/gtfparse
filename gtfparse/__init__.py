@@ -13,15 +13,26 @@
 from .attribute_parsing import expand_attribute_strings
 from .create_missing_features import create_missing_features
 from .parsing_error import ParsingError
-from .read_gtf import read_gtf, parse_gtf, parse_gtf_and_expand_attributes, REQUIRED_COLUMNS
+from .read_gtf import (
+    read_gtf, 
+    parse_gtf,
+    parse_gtf_polars,
+    parse_gtf_pandas, 
+    parse_gtf_and_expand_attributes, 
+    REQUIRED_COLUMNS,
+)
+
 
 
 __all__ = [
     "expand_attribute_strings",
     "create_missing_features",
-    "parse_gtf",
+
     "parse_gtf_and_expand_attributes",
     "REQUIRED_COLUMNS",
     "ParsingError",
     "read_gtf",
+    "parse_gtf",
+    "parse_gtf_polars",
+    "parse_gtf_pandas",
 ]

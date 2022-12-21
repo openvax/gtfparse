@@ -1,6 +1,6 @@
 from data import data_path
 from gtfparse import read_gtf
-from nose.tools import eq_
+
 
 ENSEMBL_GTF_PATH = data_path("ensembl_grch37.head.gtf")
 
@@ -18,7 +18,7 @@ EXPECTED_FEATURES = set([
 def test_ensembl_gtf_columns():
     df = read_gtf(ENSEMBL_GTF_PATH)
     features = set(df["feature"])
-    eq_(features, EXPECTED_FEATURES)
+    assert features == EXPECTED_FEATURES
 
 # first 1000 lines of GTF only contained these genes
 EXPECTED_GENE_NAMES = {

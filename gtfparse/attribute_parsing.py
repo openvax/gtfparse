@@ -65,7 +65,6 @@ def expand_attribute_strings(
     # using a local dictionary, hence the two dictionaries below
     # and pair of try/except blocks in the loop.
     column_interned_strings = {}
-    value_interned_strings = {}
 
     for (i, kv_strings) in enumerate(attribute_strings):
         if type(kv_strings) is str:
@@ -91,28 +90,25 @@ def expand_attribute_strings(
             if usecols is not None and column_name not in usecols:
                 continue
 
+            if value[0] == quote_char:
+                value = value.replace(quote_char, "")
+                
             try:
                 column = extra_columns[column_name]
+                # if an attribute is used repeatedly then
+                # keep track of all its values in a list
+                old_value = column[i]
+                if old_value is missing_value:
+                    column[i] = value
+                else:
+                    column[i] = "%s,%s" % (old_value, value)
             except KeyError:
                 column = [missing_value] * n
+                column[i] = value
                 extra_columns[column_name] = column
                 column_order.append(column_name)
 
-            value = value.replace(quote_char, "") if value.startswith(quote_char) else value
 
-            try:
-                value = value_interned_strings[value]
-            except KeyError:
-                value = intern(str(value))
-                value_interned_strings[value] = value
-
-            # if an attribute is used repeatedly then
-            # keep track of all its values in a list
-            old_value = column[i]
-            if old_value is missing_value:
-                column[i] = value
-            else:
-                column[i] = "%s,%s" % (old_value, value)
 
     logging.info("Extracted GTF attributes: %s" % column_order)
     return OrderedDict(

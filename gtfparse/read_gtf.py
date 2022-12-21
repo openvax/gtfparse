@@ -77,11 +77,14 @@ REQUIRED_COLUMNS = [
 ]
 
 
-def read_with_polars_lazy(
+def parse_with_polars_lazy(
         filepath_or_buffer,
         split_attributes=True,
         features=None,
         fix_quotes_columns=["attribute"]):
+    # use a global string cache so that all strings get intern'd into
+    # a single numbering system
+    polars.toggle_string_cache(True)
     kwargs = dict(
         has_header=False,
         sep="\t",
@@ -123,7 +126,7 @@ def read_with_polars_lazy(
         polars.col("frame").fill_null(0),
         polars.col("attribute").str.replace_all('"', "'")
     ])
-        
+    
     for fix_quotes_column in fix_quotes_columns:
         # Catch mistaken semicolons by replacing "xyz;" with "xyz"
         # Required to do this since the Ensembl GTF for Ensembl
@@ -145,29 +148,26 @@ def read_with_polars_lazy(
     return df
     
 
-def read_with_polars_eager(
+def parse_gtf_polars(
         filepath_or_buffer, 
         split_attributes=True, 
         features=None,
         fix_quotes_columns=["attribute"]):
-    df_lazy = read_with_polars_lazy(
+    df_lazy = parse_with_polars_lazy(
         filepath_or_buffer=filepath_or_buffer,
         split_attributes=split_attributes,
         features=features,
         fix_quotes_columns=fix_quotes_columns)
     return df_lazy.collect()
+    
+def parse_gtf_pandas(*args, **kwargs):
+    return parse_gtf_polars(*args, **kwargs).to_pandas()
 
-def parse_gtf(
-        filepath_or_buffer,
-        features=None,
-        fix_quotes_columns=["attribute"],
-        split_attributes=True):
-    df = read_with_polars_eager(
-        filepath_or_buffer=filepath_or_buffer, 
-        features=features, 
-        fix_quotes_columns=fix_quotes_columns,
-        split_attributes=split_attributes).to_pandas()
-    return df
+
+def parse_gtf(*args, **kwargs):
+    return parse_gtf_polars(*args, **kwargs)
+    
+
 
 def parse_gtf_and_expand_attributes(
         filepath_or_buffer,
@@ -187,24 +187,28 @@ def parse_gtf_and_expand_attributes(
     chunksize : int
 
     restrict_attribute_columns : list/set of str or None
-        If given, then only usese attribute columns.
+        If given, then only use these attribute columns.
 
     features : set or None
         Ignore entries which don't correspond to one of the supplied features
     """
-    df = parse_gtf(
+    df = parse_gtf_polars(
         filepath_or_buffer=filepath_or_buffer, 
         features=features,
         split_attributes=True)
-    attribute_pairs = df["attribute_split"]
-    df.drop('attribute', axis=1, inplace=True) 
-    df.drop('attribute_split', axis=1, inplace=True) 
+    if type(restrict_attribute_columns) is str:
+        restrict_attribute_columns = {restrict_attribute_columns}
+    elif restrict_attribute_columns:
+        restrict_attribute_columns = set(restrict_attribute_columns)
+    df.drop_in_place("attribute")
+    attribute_pairs = df.drop_in_place("attribute_split")
+    return df.with_columns([
+        polars.Series(k, vs)
+        for (k, vs) in 
+        expand_attribute_strings(attribute_pairs).items()
+        if restrict_attribute_columns is None or k in restrict_attribute_columns
+    ])
 
-    for (attr, values) in expand_attribute_strings(attribute_pairs).items():
-        if not restrict_attribute_columns or attr in restrict_attribute_columns:
-            df[attr] = values
-    return df
-    
 
 def read_gtf(
         filepath_or_buffer,
