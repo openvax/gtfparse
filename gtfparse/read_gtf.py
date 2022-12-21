@@ -260,12 +260,12 @@ def read_gtf(
     else:
         result_df = parse_gtf(result_df, features=features)
 
-    for column_name, column_type in list(column_converters.items()):
-        result_df[column_name] = [
-            column_type(string_value) if len(string_value) > 0 else None
-            for string_value
-            in result_df[column_name]
+    result_df = result_df.with_columns(
+        [
+            polars.col(column_name).apply(lambda x: column_type(x) if len(x) > 0 else None)
+            for column_name, column_type in column_converters.items()
         ]
+    )
 
     # Hackishly infer whether the values in the 'source' column of this GTF
     # are actually representing a biotype by checking for the most common
@@ -280,14 +280,14 @@ def read_gtf(
             # gene_biotype)
             if "gene_biotype" not in column_names:
                 logging.info("Using column 'source' to replace missing 'gene_biotype'")
-                result_df["gene_biotype"] = result_df["source"]
+                result_df = result_df.with_column(polars.col("source").alias("gene_biotype"))
             if "transcript_biotype" not in column_names:
                 logging.info("Using column 'source' to replace missing 'transcript_biotype'")
-                result_df["transcript_biotype"] = result_df["source"]
+                result_df = result_df.with_column(polars.col("source").alias("transcript_biotype"))
 
     if usecols is not None:
         column_names = set(result_df.columns)
         valid_columns = [c for c in usecols if c in column_names]
-        result_df = result_df[valid_columns]
+        result_df = result_df.select(valid_columns)
 
     return result_df
