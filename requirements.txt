@@ -1,2 +1,1 @@
-numpy>=1.7, <2.0
-pandas>=0.15
+polars

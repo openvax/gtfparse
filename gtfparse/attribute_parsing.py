@@ -18,9 +18,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+
 def expand_attribute_strings(
         attribute_strings,
-        quote_char='\"',
+        quote_char="'",
         missing_value="",
         usecols=None):
     """
@@ -64,10 +65,11 @@ def expand_attribute_strings(
     # using a local dictionary, hence the two dictionaries below
     # and pair of try/except blocks in the loop.
     column_interned_strings = {}
-    value_interned_strings = {}
 
-    for (i, attribute_string) in enumerate(attribute_strings):
-        for kv in attribute_string.split(";"):
+    for (i, kv_strings) in enumerate(attribute_strings):
+        if type(kv_strings) is str:
+            kv_strings = kv_strings.split(";")
+        for kv in kv_strings:
             # We're slicing the first two elements out of split() because
             # Ensembl release 79 added values like:
             #   transcript_support_level "1 (assigned to previous version 5)";
@@ -88,28 +90,25 @@ def expand_attribute_strings(
             if usecols is not None and column_name not in usecols:
                 continue
 
+            if value[0] == quote_char:
+                value = value.replace(quote_char, "")
+                
             try:
                 column = extra_columns[column_name]
+                # if an attribute is used repeatedly then
+                # keep track of all its values in a list
+                old_value = column[i]
+                if old_value is missing_value:
+                    column[i] = value
+                else:
+                    column[i] = "%s,%s" % (old_value, value)
             except KeyError:
                 column = [missing_value] * n
+                column[i] = value
                 extra_columns[column_name] = column
                 column_order.append(column_name)
 
-            value = value.replace(quote_char, "") if value.startswith(quote_char) else value
 
-            try:
-                value = value_interned_strings[value]
-            except KeyError:
-                value = intern(str(value))
-                value_interned_strings[value] = value
-
-            # if an attribute is used repeatedly then
-            # keep track of all its values in a list
-            old_value = column[i]
-            if old_value is missing_value:
-                column[i] = value
-            else:
-                column[i] = "%s,%s" % (old_value, value)
 
     logging.info("Extracted GTF attributes: %s" % column_order)
     return OrderedDict(

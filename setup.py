@@ -10,15 +10,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
 import os
 import re
 
 from setuptools import setup, find_packages
 
-readme_filename = "README.md"
+
+
+package_name = "gtfparse"
 current_directory = os.path.dirname(__file__)
+readme_filename = 'README.md'
 readme_path = os.path.join(current_directory, readme_filename)
+github_url = "https://github.com/openvax/%s" % package_name
+
 
 readme_markdown = ""
 try:
@@ -34,15 +38,19 @@ with open('gtfparse/version.py', 'r') as f:
         f.read(),
         re.MULTILINE).group(1)
 
+with open("requirements.txt") as f:
+    requirements = [l.strip() for l in f]
+
+
 if __name__ == '__main__':
     setup(
-        name='gtfparse',
+        name=package_name,
         packages=find_packages(),
         version=version,
         description="GTF Parsing",
         long_description=readme_markdown,
         long_description_content_type='text/markdown',
-        url="https://github.com/openvax/gtfparse",
+        url=github_url,
         author="Alex Rubinsteyn",
         license="http://www.apache.org/licenses/LICENSE-2.0.html",
         classifiers=[
@@ -54,8 +62,8 @@ if __name__ == '__main__':
             'Programming Language :: Python',
             'Topic :: Scientific/Engineering :: Bio-Informatics',
         ],
-        install_requires=[
-            'numpy>=1.7',
-            'pandas>=0.15',
-        ],
+        install_requires=requirements,
+        package_data={
+            package_name: ['../requirements.txt'],
+        },
     )

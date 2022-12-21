@@ -1,5 +1,5 @@
 from gtfparse import create_missing_features, parse_gtf_and_expand_attributes
-from six import StringIO
+from io import StringIO
 
 # two lines from the Ensembl 54 human GTF containing only a stop_codon and
 # exon features, but from which gene and transcript information could be
@@ -18,7 +18,7 @@ GTF_TEXT = "\n".join([
 ])
 
 
-GTF_DATAFRAME = parse_gtf_and_expand_attributes(StringIO(GTF_TEXT))
+GTF_DATAFRAME = parse_gtf_and_expand_attributes(StringIO(GTF_TEXT)).to_pandas()
 
 def test_create_missing_features_identity():
     df_should_be_same = create_missing_features(GTF_DATAFRAME, {})
