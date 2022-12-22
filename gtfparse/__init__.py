@@ -16,7 +16,6 @@ from .parsing_error import ParsingError
 from .read_gtf import (
     read_gtf, 
     parse_gtf,
-    parse_gtf_polars,
     parse_gtf_pandas, 
     parse_gtf_and_expand_attributes, 
     REQUIRED_COLUMNS,
@@ -33,6 +32,5 @@ __all__ = [
     "ParsingError",
     "read_gtf",
     "parse_gtf",
-    "parse_gtf_polars",
     "parse_gtf_pandas",
 ]

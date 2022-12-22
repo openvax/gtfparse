@@ -146,9 +146,8 @@ def parse_with_polars_lazy(
             polars.col("attribute").str.split(";").alias("attribute_split")
         ])
     return df
-    
 
-def parse_gtf_polars(
+def parse_gtf(
         filepath_or_buffer, 
         split_attributes=True, 
         features=None,
@@ -159,16 +158,11 @@ def parse_gtf_polars(
         features=features,
         fix_quotes_columns=fix_quotes_columns)
     return df_lazy.collect()
-    
+
 def parse_gtf_pandas(*args, **kwargs):
-    return parse_gtf_polars(*args, **kwargs).to_pandas()
+    return parse_gtf(*args, **kwargs).to_pandas()
 
-
-def parse_gtf(*args, **kwargs):
-    return parse_gtf_polars(*args, **kwargs)
     
-
-
 def parse_gtf_and_expand_attributes(
         filepath_or_buffer,
         restrict_attribute_columns=None,
@@ -192,7 +186,7 @@ def parse_gtf_and_expand_attributes(
     features : set or None
         Ignore entries which don't correspond to one of the supplied features
     """
-    df = parse_gtf_polars(
+    df = parse_gtf(
         filepath_or_buffer=filepath_or_buffer, 
         features=features,
         split_attributes=True)
@@ -216,7 +210,8 @@ def read_gtf(
         infer_biotype_column=False,
         column_converters={},
         usecols=None,
-        features=None):
+        features=None,
+        result_type='polars'):
     """
     Parse a GTF into a dictionary mapping column names to sequences of values.
 
@@ -248,6 +243,9 @@ def read_gtf(
     features : set of str or None
         Drop rows which aren't one of the features in the supplied set
 
+    result_type : One of 'polars', 'pandas', or 'dict'
+        Default behavior is to return a Polars DataFrame, but will convert to 
+        Pandas DataFrame or dictionary if specified.
     """
     if type(filepath_or_buffer) is str and not exists(filepath_or_buffer):
         raise ValueError("GTF file does not exist: %s" % filepath_or_buffer)
@@ -290,4 +288,10 @@ def read_gtf(
         valid_columns = [c for c in usecols if c in column_names]
         result_df = result_df.select(valid_columns)
 
-    return result_df
+    if result_type == "pandas":
+        result = result_df.to_pandas()
+    elif result_type == "polars":
+        result = result_df
+    elif result_type == "dict":
+        result = result_df.to_dict()
+    return result
