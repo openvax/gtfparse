@@ -87,7 +87,7 @@ def parse_with_polars_lazy(
     polars.toggle_string_cache(True)
     kwargs = dict(
         has_header=False,
-        sep="\t",
+        separator="\t",
         comment_char="#",
         null_values=".",
         dtypes={
