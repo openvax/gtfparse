@@ -1,1 +1,1 @@
-polars
+polars>=0.16.14
