@@ -14,6 +14,7 @@ import logging
 from os.path import exists
 from io import StringIO
 import gzip 
+from packaging import version
 
 import polars 
 
@@ -85,9 +86,9 @@ def parse_with_polars_lazy(
     # use a global string cache so that all strings get intern'd into
     # a single numbering system
     polars.toggle_string_cache(True)
+            
     kwargs = dict(
         has_header=False,
-        sep="\t",
         comment_char="#",
         null_values=".",
         dtypes={
@@ -102,6 +103,11 @@ def parse_with_polars_lazy(
             "strand": polars.Categorical, 
             "frame": polars.UInt32,
         })
+    if version.parse(polars.__version__) >= version.parse("0.16.14"):
+        kwargs["separator"] = "\t"
+    else:
+        kwargs["sep"] = "\t"
+        
     try:
         if type(filepath_or_buffer) is StringIO:
             df = polars.read_csv(
