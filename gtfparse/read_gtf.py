@@ -85,7 +85,10 @@ def parse_with_polars_lazy(
         fix_quotes_columns=["attribute"]):
     # use a global string cache so that all strings get intern'd into
     # a single numbering system
-    polars.enable_string_cache(True)
+    if version.parse(polars.__version__) >= version.parse("0.17.0"):
+        polars.enable_string_cache(True)
+    else:
+        polars.toggle_string_cache(True)
             
     kwargs = dict(
         has_header=False,
