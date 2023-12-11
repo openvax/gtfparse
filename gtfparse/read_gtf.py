@@ -10,17 +10,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import gzip
 import logging
-from os.path import exists
+import re
 from io import StringIO
-import gzip 
+from os.path import exists
+
+import polars
 from packaging import version
 
-import polars 
-
-from .attribute_parsing import expand_attribute_strings
 from .parsing_error import ParsingError
-
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -78,116 +77,21 @@ REQUIRED_COLUMNS = [
 ]
 
 
-def parse_with_polars_lazy(
-        filepath_or_buffer,
-        split_attributes=True,
-        features=None,
-        fix_quotes_columns=["attribute"]):
-    # use a global string cache so that all strings get intern'd into
-    # a single numbering system
-    if version.parse(polars.__version__) >= version.parse("0.17.0"):
-        polars.enable_string_cache(True)
-    else:
-        polars.toggle_string_cache(True)
-            
-    kwargs = dict(
-        has_header=False,
-        comment_char="#",
-        null_values=".",
-        dtypes={
-            "seqname": polars.Categorical, 
-            "source": polars.Categorical, 
-            
-            "start": polars.Int64,
-            "end": polars.Int64,
-            "score": polars.Float32,
-
-            "feature": polars.Categorical, 
-            "strand": polars.Categorical, 
-            "frame": polars.UInt32,
-        })
-    if version.parse(polars.__version__) >= version.parse("0.16.14"):
-        kwargs["separator"] = "\t"
-    else:
-        kwargs["sep"] = "\t"
-        
-    try:
-        if type(filepath_or_buffer) is StringIO:
-            df = polars.read_csv(
-                filepath_or_buffer,
-                new_columns=REQUIRED_COLUMNS,
-                **kwargs).lazy()
-        elif filepath_or_buffer.endswith(".gz") or filepath_or_buffer.endswith(".gzip"):
-            with gzip.open(filepath_or_buffer) as f:
-                df = polars.read_csv(
-                    f,
-                    new_columns=REQUIRED_COLUMNS,
-                    **kwargs).lazy()
-        else:
-            df = polars.scan_csv(
-                filepath_or_buffer, 
-                with_column_names=lambda cols: REQUIRED_COLUMNS,
-                **kwargs).lazy()
-    except polars.ShapeError:
-        raise ParsingError("Wrong number of columns")
-
-    df = df.with_columns([
-        polars.col("frame").fill_null(0),
-        polars.col("attribute").str.replace_all('"', "'")
-    ])
-    
-    for fix_quotes_column in fix_quotes_columns:
-        # Catch mistaken semicolons by replacing "xyz;" with "xyz"
-        # Required to do this since the Ensembl GTF for Ensembl
-        # release 78 has mistakes such as:
-        #   gene_name = "PRAMEF6;" transcript_name = "PRAMEF6;-201"
-        df = df.with_columns([
-            polars.col(fix_quotes_column).str.replace(';\"', '\"').str.replace(";-", "-")
-        ])
-
-    if features is not None:
-        features = sorted(set(features))
-        df = df.filter(polars.col("feature").is_in(features))
-
-
-    if split_attributes:
-        df = df.with_columns([
-            polars.col("attribute").str.split(";").alias("attribute_split")
-        ])
-    return df
-
 def parse_gtf(
-        filepath_or_buffer, 
-        split_attributes=True, 
-        features=None,
-        fix_quotes_columns=["attribute"]):
-    df_lazy = parse_with_polars_lazy(
-        filepath_or_buffer=filepath_or_buffer,
-        split_attributes=split_attributes,
-        features=features,
-        fix_quotes_columns=fix_quotes_columns)
-    return df_lazy.collect()
-
-def parse_gtf_pandas(*args, **kwargs):
-    return parse_gtf(*args, **kwargs).to_pandas()
-
-    
-def parse_gtf_and_expand_attributes(
-        filepath_or_buffer,
-        restrict_attribute_columns=None,
-        features=None):
-    """
-    Parse lines into column->values dictionary and then expand
-    the 'attribute' column into multiple columns. This expansion happens
-    by replacing strings of semi-colon separated key-value values in the
-    'attribute' column with one column per distinct key, with a list of
-    values for each row (using None for rows where key didn't occur).
+    filepath_or_buffer,
+    restrict_attribute_columns=None,
+    expand_attribute_column=True,
+    features=None,
+):
+    """Parse lines into column->values dictionary and then expand the
+    'attribute' column into multiple columns. This expansion happens by
+    replacing strings of semi-colon separated key-value values in the
+    'attribute' column with one column per distinct key, with a list of values
+    for each row (using None for rows where key didn't occur).
 
     Parameters
     ----------
     filepath_or_buffer : str or buffer object
-
-    chunksize : int
 
     restrict_attribute_columns : list/set of str or None
         If given, then only use these attribute columns.
@@ -195,34 +99,111 @@ def parse_gtf_and_expand_attributes(
     features : set or None
         Ignore entries which don't correspond to one of the supplied features
     """
-    df = parse_gtf(
-        filepath_or_buffer=filepath_or_buffer, 
-        features=features,
-        split_attributes=True)
-    if type(restrict_attribute_columns) is str:
-        restrict_attribute_columns = {restrict_attribute_columns}
-    elif restrict_attribute_columns:
-        restrict_attribute_columns = set(restrict_attribute_columns)
-    df.drop_in_place("attribute")
-    attribute_pairs = df.drop_in_place("attribute_split")
-    return df.with_columns([
-        polars.Series(k, vs)
-        for (k, vs) in 
-        expand_attribute_strings(attribute_pairs).items()
-        if restrict_attribute_columns is None or k in restrict_attribute_columns
-    ])
+    # use a global string cache so that all strings get intern'd into
+    # a single numbering system
+    if version.parse(polars.__version__) >= version.parse("0.17.0"):
+        polars.enable_string_cache(True)
+    else:
+        polars.toggle_string_cache(True)
+
+    kwargs = dict(
+        has_header=False,
+        comment_char="#",
+        null_values=".",
+        dtypes={
+            "seqname": polars.Categorical,
+            "source": polars.Categorical,
+            "start": polars.Int64,
+            "end": polars.Int64,
+            "score": polars.Float32,
+            "feature": polars.Categorical,
+            "strand": polars.Categorical,
+            "frame": polars.UInt32,
+        },
+    )
+    if version.parse(polars.__version__) >= version.parse("0.16.14"):
+        kwargs["separator"] = "\t"
+    else:
+        kwargs["sep"] = "\t"
+
+    try:
+        if type(filepath_or_buffer) is StringIO:
+            df = polars.read_csv(
+                filepath_or_buffer, new_columns=REQUIRED_COLUMNS, **kwargs
+            ).lazy()
+        elif filepath_or_buffer.endswith(".gz") or filepath_or_buffer.endswith(
+            ".gzip"
+        ):
+            with gzip.open(filepath_or_buffer) as f:
+                df = polars.read_csv(
+                    f, new_columns=REQUIRED_COLUMNS, **kwargs
+                ).lazy()
+        else:
+            df = polars.scan_csv(
+                filepath_or_buffer,
+                with_column_names=lambda cols: REQUIRED_COLUMNS,
+                **kwargs
+            ).lazy()
+    except polars.ShapeError:
+        raise ParsingError("Wrong number of columns")
+
+    if features is not None:
+        features = sorted(set(features))
+        df = df.filter(polars.col("feature").is_in(features))
+
+    df = df.with_columns(
+        [
+            polars.col("frame").fill_null(0),
+            # polars.col("attribute").str.replace_all('"', "'")
+        ]
+    )
+
+    # convert lazyDataFrame to DataFrame
+    df = df.collect()
+    if expand_attribute_column:
+        if isinstance(restrict_attribute_columns, str):
+            restrict_attribute_columns = {restrict_attribute_columns}
+        elif restrict_attribute_columns:
+            restrict_attribute_columns = set(restrict_attribute_columns)
+        else:
+            restrict_attribute_columns = set()
+
+        def extract_attributes(gtf_attr):
+            records = re.findall(r"(\S+) \"([^\"]+)\";", gtf_attr)
+            return dict(records)
+
+        # Apply the function to each row
+        annot_df = (
+            df["attribute"]
+            .apply(lambda x: extract_attributes(x))
+            .struct.unnest()
+        )
+        df = polars.concat([df, annot_df], how="horizontal")
+        df = df.drop("attribute")
+
+    return df
+
+
+def parse_gtf_and_expand_attributes(*args, **kwargs):
+    kwargs["expand_attribute_column"] = True
+    return parse_gtf(*args, **kwargs)
+
+
+def parse_gtf_pandas(*args, **kwargs):
+    return parse_gtf(*args, **kwargs).to_pandas()
 
 
 def read_gtf(
-        filepath_or_buffer,
-        expand_attribute_column=True,
-        infer_biotype_column=False,
-        column_converters={},
-        usecols=None,
-        features=None,
-        result_type='polars'):
-    """
-    Parse a GTF into a dictionary mapping column names to sequences of values.
+    filepath_or_buffer,
+    expand_attribute_column=True,
+    infer_biotype_column=False,
+    column_converters={},
+    usecols=None,
+    features=None,
+    result_type="pandas",
+):
+    """Parse a GTF into a dictionary mapping column names to sequences of
+    values.
 
     Parameters
     ----------
@@ -253,26 +234,25 @@ def read_gtf(
         Drop rows which aren't one of the features in the supplied set
 
     result_type : One of 'polars', 'pandas', or 'dict'
-        Default behavior is to return a Polars DataFrame, but will convert to 
+        Default behavior is to return a Polars DataFrame, but will convert to
         Pandas DataFrame or dictionary if specified.
     """
-    if type(filepath_or_buffer) is str and not exists(filepath_or_buffer):
+    if isinstance(filepath_or_buffer, str) and not exists(filepath_or_buffer):
         raise ValueError("GTF file does not exist: %s" % filepath_or_buffer)
 
-    if expand_attribute_column:
-        result_df = parse_gtf_and_expand_attributes(
-            filepath_or_buffer,
-            restrict_attribute_columns=usecols,
-            features=features)
-    else:
-        result_df = parse_gtf(result_df, features=features)
-
-    result_df = result_df.with_columns(
-        [
-            polars.col(column_name).apply(lambda x: column_type(x) if len(x) > 0 else None)
-            for column_name, column_type in column_converters.items()
-        ]
+    result_df = parse_gtf(
+        filepath_or_buffer,
+        restrict_attribute_columns=usecols,
+        expand_attribute_column=expand_attribute_column,
+        features=features,
     )
+
+    for column_name, column_type in column_converters.items():
+        result_df = result_df.with_columns(
+            polars.col(column_name).apply(
+                lambda x: column_type(x) if len(x) > 0 else None
+            )
+        )
 
     # Hackishly infer whether the values in the 'source' column of this GTF
     # are actually representing a biotype by checking for the most common
@@ -286,11 +266,19 @@ def read_gtf(
             # the 2nd column is the transcript_biotype (otherwise, it's the
             # gene_biotype)
             if "gene_biotype" not in column_names:
-                logging.info("Using column 'source' to replace missing 'gene_biotype'")
-                result_df = result_df.with_column(polars.col("source").alias("gene_biotype"))
+                logging.info(
+                    "Using column 'source' to replace missing 'gene_biotype'"
+                )
+                result_df = result_df.with_columns(
+                    polars.col("source").alias("gene_biotype")
+                )
             if "transcript_biotype" not in column_names:
-                logging.info("Using column 'source' to replace missing 'transcript_biotype'")
-                result_df = result_df.with_column(polars.col("source").alias("transcript_biotype"))
+                logging.info(
+                    "Using column 'source' to replace missing 'transcript_biotype'"
+                )
+                result_df = result_df.with_columns(
+                    polars.col("source").alias("transcript_biotype")
+                )
 
     if usecols is not None:
         column_names = set(result_df.columns)
@@ -298,9 +286,7 @@ def read_gtf(
         result_df = result_df.select(valid_columns)
 
     if result_type == "pandas":
-        result = result_df.to_pandas()
-    elif result_type == "polars":
-        result = result_df
+        return result_df.to_pandas()
     elif result_type == "dict":
-        result = result_df.to_dict()
-    return result
+        return result_df.to_dict()
+    return result_df
