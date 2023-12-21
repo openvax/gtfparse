@@ -84,7 +84,7 @@ def parse_with_polars_lazy(
         fix_quotes_columns=["attribute"]):
     # use a global string cache so that all strings get intern'd into
     # a single numbering system
-    polars.toggle_string_cache(True)
+    polars.enable_string_cache()
     kwargs = dict(
         has_header=False,
         sep="\t",
@@ -202,7 +202,7 @@ def parse_gtf_and_expand_attributes(
         expand_attribute_strings(attribute_pairs).items()
         if restrict_attribute_columns is None or k in restrict_attribute_columns
     ])
-
+    
 
 def read_gtf(
         filepath_or_buffer,

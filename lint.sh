@@ -3,7 +3,6 @@ set -o errexit
 
 find . -name '*.py' \
   | xargs pylint \
-  --errors-only \
-  --disable=print-statement
+  --errors-only 
 
 echo 'Passes pylint check'
