@@ -1,0 +1,27 @@
+[project]
+name = "gtfparse"
+requires-python = ">=3.7"
+authors = [ {name="Alex Rubinsteyn", email="alex.rubinsteyn@unc.edu" } ]
+description = "Parsing library for extracting data frames of genomic features from GTF files"
+classifiers = [
+            'Development Status :: 4 - Beta',
+            'Environment :: Console',
+            'Operating System :: OS Independent',
+            'Intended Audience :: Science/Research',
+            'License :: OSI Approved :: Apache Software License',
+            'Programming Language :: Python',
+            'Topic :: Scientific/Engineering :: Bio-Informatics',
+]
+readme = "README.md"
+dynamic = ["version", "dependencies"]
+
+[tool.setuptools.dynamic]
+version = {attr = "gtfparse.__version__"}
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools]
+packages = ["gtfparse"]
+
+[project.urls]
+"Homepage" = "https://github.com/openvax/gtfparse"
+"Bug Tracker" = "https://github.com/openvax/gtfparse"
