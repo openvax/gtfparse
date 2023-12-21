@@ -87,8 +87,8 @@ def parse_with_polars_lazy(
     polars.enable_string_cache()
     kwargs = dict(
         has_header=False,
-        sep="\t",
-        comment_char="#",
+        separator="\t",
+        comment_prefix="#",
         null_values=".",
         dtypes={
             "seqname": polars.Categorical, 
@@ -260,7 +260,7 @@ def read_gtf(
 
     result_df = result_df.with_columns(
         [
-            polars.col(column_name).apply(lambda x: column_type(x) if len(x) > 0 else None)
+            polars.col(column_name).map_elements(lambda x: column_type(x) if len(x) > 0 else None)
             for column_name, column_type in column_converters.items()
         ]
     )
