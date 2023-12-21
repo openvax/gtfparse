@@ -1,1 +1,6 @@
+<<<<<<< Updated upstream
 polars
+=======
+polars>=0.20.2,<0.21.0
+pyarrow>=14.0.2,<14.1.0
+>>>>>>> Stashed changes
