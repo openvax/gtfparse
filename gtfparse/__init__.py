@@ -21,9 +21,10 @@ from .read_gtf import (
     REQUIRED_COLUMNS,
 )
 
-
+__version__ = "2.1.0"
 
 __all__ = [
+    "__version__",
     "expand_attribute_strings",
     "create_missing_features",
 
