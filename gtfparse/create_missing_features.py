@@ -49,15 +49,19 @@ def create_missing_features(
     missing_value : any
         Which value to fill in for columns that we don't infer values for.
 
-    Returns original dataframe along with all extra rows created for missing
-    features.
+    Returns original dataframe (converted to Pandas if necessary) along with all 
+    extra rows created for missing features.
     """
+    if hasattr(dataframe, "to_pandas"):
+        dataframe = dataframe.to_pandas()
+  
     extra_dataframes = []
 
     existing_features = set(dataframe["feature"])
     existing_columns = set(dataframe.columns)
-
+ 
     for (feature_name, groupby_key) in unique_keys.items():
+        
         if feature_name in existing_features:
             logging.info(
                 "Feature '%s' already exists in GTF data" % feature_name)
@@ -65,9 +69,11 @@ def create_missing_features(
         logging.info("Creating rows for missing feature '%s'" % feature_name)
 
         # don't include rows where the groupby key was missing
-        empty_key_values = dataframe[groupby_key].map(
-            lambda x: x == "" or x is None)
-        row_groups = dataframe[~empty_key_values].groupby(groupby_key)
+        missing = pd.Series([
+            x is None or x == ""
+            for x in dataframe[groupby_key]])
+        not_missing = ~missing
+        row_groups = dataframe[not_missing].groupby(groupby_key)
 
         # Each group corresponds to a unique feature entry for which the
         # other columns may or may not be uniquely defined. Start off by
