@@ -14,3 +14,7 @@ def _check_required_columns(gtf_dict):
 def test_read_refseq_gtf_as_dataframe():
     gtf_df = read_gtf(REFSEQ_GTF_PATH)
     _check_required_columns(gtf_df)
+
+def test_read_refseq_and_transform_columns():
+    gtf_df = read_gtf(REFSEQ_GTF_PATH, column_converters={"start": int, "end": int}, column_cast_types={"score": float})
+    print(gtf_df)

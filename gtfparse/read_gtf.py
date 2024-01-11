@@ -77,6 +77,19 @@ REQUIRED_COLUMNS = [
 ]
 
 
+DEFAULT_COLUMN_DTYPES = {
+    "seqname": polars.Categorical, 
+    "source": polars.Categorical, 
+    
+    "start": polars.Int64,
+    "end": polars.Int64,
+    "score": polars.Float32,
+
+    "feature": polars.Categorical, 
+    "strand": polars.Categorical, 
+    "frame": polars.UInt32,
+}
+
 def parse_with_polars_lazy(
         filepath_or_buffer,
         split_attributes=True,
@@ -90,18 +103,7 @@ def parse_with_polars_lazy(
         separator="\t",
         comment_prefix="#",
         null_values=".",
-        dtypes={
-            "seqname": polars.Categorical, 
-            "source": polars.Categorical, 
-            
-            "start": polars.Int64,
-            "end": polars.Int64,
-            "score": polars.Float32,
-
-            "feature": polars.Categorical, 
-            "strand": polars.Categorical, 
-            "frame": polars.UInt32,
-        })
+        dtypes=DEFAULT_COLUMN_DTYPES)
     try:
         if type(filepath_or_buffer) is StringIO:
             df = polars.read_csv(
@@ -209,6 +211,7 @@ def read_gtf(
         expand_attribute_column=True,
         infer_biotype_column=False,
         column_converters={},
+        column_cast_types={},
         usecols=None,
         features=None,
         result_type='polars'):
@@ -236,6 +239,10 @@ def read_gtf(
         empty strings with None and otherwise passes them to given conversion
         function.
 
+    column_cast_types : dict, optional
+        Dictionary mapping column names to dtypes. Will cast columns to given
+        Polars types.
+    
     usecols : list of str or None
         Restrict which columns are loaded to the give set. If None, then
         load all columns.
@@ -258,12 +265,31 @@ def read_gtf(
     else:
         result_df = parse_gtf(result_df, features=features)
 
-    result_df = result_df.with_columns(
-        [
-            polars.col(column_name).map_elements(lambda x: column_type(x) if len(x) > 0 else None)
-            for column_name, column_type in column_converters.items()
-        ]
-    )
+
+    if column_converters or column_cast_types:
+        # transform columns with user-specified functions and/or cast them to user-specified types
+        polars_expressions = []
+
+        def wrap_to_always_accept_none(f):
+            def wrapped_fn(x):
+                if x is None or x == "":
+                    return None
+                else:
+                    return f(x)
+            return wrapped_fn
+        
+        column_names = set(column_converters.keys()).union(column_cast_types.keys())
+        for column_name in column_names:
+            e = polars.col(column_name)
+            if column_name in column_converters:
+                column_fn = column_converters[column_name]
+                e = e.map_elements(wrap_to_always_accept_none(column_fn))
+
+            if column_name in column_cast_types:
+                column_type = column_cast_types[column_name]
+                e = e.cast(column_type)
+            polars_expressions.append(e)
+        result_df = result_df.with_columns(polars_expressions)
 
     # Hackishly infer whether the values in the 'source' column of this GTF
     # are actually representing a biotype by checking for the most common
