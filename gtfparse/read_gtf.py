@@ -292,10 +292,10 @@ def read_gtf(
             # gene_biotype)
             if "gene_biotype" not in column_names:
                 logging.info("Using column 'source' to replace missing 'gene_biotype'")
-                result_df = result_df.with_column(polars.col("source").alias("gene_biotype"))
+                result_df = result_df.with_columns([polars.col("source").alias("gene_biotype")])
             if "transcript_biotype" not in column_names:
                 logging.info("Using column 'source' to replace missing 'transcript_biotype'")
-                result_df = result_df.with_column(polars.col("source").alias("transcript_biotype"))
+                result_df = result_df.with_columns([polars.col("source").alias("transcript_biotype")])
 
     if usecols is not None:
         column_names = set(result_df.columns)

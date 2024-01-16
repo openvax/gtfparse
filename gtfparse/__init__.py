@@ -21,7 +21,7 @@ from .read_gtf import (
     REQUIRED_COLUMNS,
 )
 
-__version__ = "2.4.0"
+__version__ = "2.4.1"
 
 __all__ = [
     "__version__",
