@@ -105,21 +105,9 @@ def parse_with_polars_lazy(
         null_values=".",
         dtypes=DEFAULT_COLUMN_DTYPES)
     try:
-        if type(filepath_or_buffer) is StringIO:
-            df = polars.read_csv(
+        df = polars.read_csv(
                 filepath_or_buffer,
                 new_columns=REQUIRED_COLUMNS,
-                **kwargs).lazy()
-        elif filepath_or_buffer.endswith(".gz") or filepath_or_buffer.endswith(".gzip"):
-            with gzip.open(filepath_or_buffer) as f:
-                df = polars.read_csv(
-                    f,
-                    new_columns=REQUIRED_COLUMNS,
-                    **kwargs).lazy()
-        else:
-            df = polars.scan_csv(
-                filepath_or_buffer, 
-                with_column_names=lambda cols: REQUIRED_COLUMNS,
                 **kwargs).lazy()
     except polars.ShapeError:
         raise ParsingError("Wrong number of columns")
