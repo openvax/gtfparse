@@ -12,8 +12,6 @@
 
 import logging
 from os.path import exists
-from io import StringIO
-import gzip 
 
 import polars 
 
@@ -253,11 +251,11 @@ def read_gtf(
     else:
         result_df = parse_gtf(result_df, features=features)
 
-
+    # converting back to pandas here because Polars bugs manifest
+    # as `pyo3_runtime.PanicException: assertion `left == right` failed: impl error`
+    # and are generally insane to chase down
+    result_df = result_df.to_pandas()
     if column_converters or column_cast_types:
-        # transform columns with user-specified functions and/or cast them to user-specified types
-        polars_expressions = []
-
         def wrap_to_always_accept_none(f):
             def wrapped_fn(x):
                 if x is None or x == "":
@@ -268,17 +266,16 @@ def read_gtf(
         
         column_names = set(column_converters.keys()).union(column_cast_types.keys())
         for column_name in column_names:
-            e = polars.col(column_name)
+     
             if column_name in column_converters:
-                column_fn = column_converters[column_name]
-                e = e.map_elements(wrap_to_always_accept_none(column_fn))
+                column_fn = wrap_to_always_accept_none(
+                    column_converters[column_name])
+                result_df[column_name] = result_df[column_name].apply(column_fn)
 
             if column_name in column_cast_types:
                 column_type = column_cast_types[column_name]
-                e = e.cast(column_type)
-            polars_expressions.append(e)
-        result_df = result_df.with_columns(polars_expressions)
-
+                result_df[column_name] = result_df[column_name].astype(column_type)
+            
     # Hackishly infer whether the values in the 'source' column of this GTF
     # are actually representing a biotype by checking for the most common
     # gene_biotype and transcript_biotype value 'protein_coding'
@@ -292,20 +289,20 @@ def read_gtf(
             # gene_biotype)
             if "gene_biotype" not in column_names:
                 logging.info("Using column 'source' to replace missing 'gene_biotype'")
-                result_df = result_df.with_columns([polars.col("source").alias("gene_biotype")])
+                result_df['gene_biotype'] = result_df['source']
             if "transcript_biotype" not in column_names:
                 logging.info("Using column 'source' to replace missing 'transcript_biotype'")
-                result_df = result_df.with_columns([polars.col("source").alias("transcript_biotype")])
-
+                result_df['transcript_biotype'] = result_df['source']
+                
     if usecols is not None:
         column_names = set(result_df.columns)
         valid_columns = [c for c in usecols if c in column_names]
-        result_df = result_df.select(valid_columns)
+        result_df = result_df[valid_columns]
 
     if result_type == "pandas":
-        result = result_df.to_pandas()
-    elif result_type == "polars":
         result = result_df
+    elif result_type == "polars":
+        result = polars.from_pandas(result_df)
     elif result_type == "dict":
         result = result_df.to_dict()
     return result
