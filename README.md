@@ -1,6 +1,4 @@
-<!-- 
-[![Build Status](https://travis-ci.org/openvax/gtfparse.svg?branch=master)](https://travis-ci.org/openvax/gtfparse) 
--->
+[![Tests](https://github.com/openvax/gtfparse/actions/workflows/tests.yml/badge.svg)](https://github.com/openvax/gtfparse/actions/workflows/tests.yml)
 [![Coverage Status](https://coveralls.io/repos/openvax/gtfparse/badge.svg?branch=master&service=github)](https://coveralls.io/github/openvax/gtfparse?branch=master)
 <a href="https://pypi.python.org/pypi/gtfparse/">
     <img src="https://img.shields.io/pypi/v/gtfparse.svg?maxAge=1000" alt="PyPI" />
