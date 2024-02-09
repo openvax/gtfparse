@@ -1,5 +1,5 @@
 from gtfparse import read_gtf
-from data import data_path
+from .data import data_path
 
 REFSEQ_GTF_PATH = data_path("refseq.ucsc.small.gtf")
 

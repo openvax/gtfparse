@@ -1,6 +1,6 @@
-from data import data_path
 from gtfparse import read_gtf
 
+from .data import data_path
 
 ENSEMBL_GTF_PATH = data_path("ensembl_grch37.head.gtf")
 
