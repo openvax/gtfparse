@@ -13,7 +13,8 @@
 import logging
 from os.path import exists
 
-import polars 
+import polars
+from polars.exceptions import ShapeError  # change import path
 
 from .attribute_parsing import expand_attribute_strings
 from .parsing_error import ParsingError
@@ -101,13 +102,13 @@ def parse_with_polars_lazy(
         separator="\t",
         comment_prefix="#",
         null_values=".",
-        dtypes=DEFAULT_COLUMN_DTYPES)
+        schema_overrides=DEFAULT_COLUMN_DTYPES)  # parameter renamed
     try:
         df = polars.read_csv(
                 filepath_or_buffer,
                 new_columns=REQUIRED_COLUMNS,
                 **kwargs).lazy()
-    except polars.ShapeError:
+    except ShapeError:  # 
         raise ParsingError("Wrong number of columns")
 
     df = df.with_columns([
