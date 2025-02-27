@@ -299,6 +299,7 @@ def read_gtf(
         valid_columns = [c for c in usecols if c in column_names]
         result_df = result_df[valid_columns]
 
+    result = None
     if result_type == "pandas":
         result = result_df
     elif result_type == "polars":
