@@ -13,6 +13,7 @@
 from .attribute_parsing import expand_attribute_strings
 from .create_missing_features import create_missing_features
 from .parsing_error import ParsingError
+from .write_gtf import write_gtf
 from .read_gtf import (
     read_gtf, 
     parse_gtf,
