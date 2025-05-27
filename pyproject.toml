@@ -34,6 +34,10 @@ dev = [
     "coveralls",
 ]
 
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project.urls]
 "Homepage" = "https://github.com/openvax/gtfparse"
 "Bug Tracker" = "https://github.com/openvax/gtfparse"
