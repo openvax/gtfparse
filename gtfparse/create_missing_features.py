@@ -12,6 +12,7 @@
 
 import logging
 from collections import OrderedDict
+from typing import Dict, List, Any, Optional, Union
 
 import pandas as pd
 
@@ -20,10 +21,11 @@ logger = logging.getLogger(__name__)
 
 
 def create_missing_features(
-        dataframe,
-        unique_keys={},
-        extra_columns={},
-        missing_value=None):
+        dataframe: pd.DataFrame,
+        unique_keys: Dict[str, str] = {},
+        extra_columns: Dict[str, List[str]] = {},
+        missing_value: Any = None
+    ) -> pd.DataFrame:
     """
     Helper function used to construct a missing feature such as 'transcript'
     or 'gene'. Some GTF files only have 'exon' and 'CDS' entries, but have

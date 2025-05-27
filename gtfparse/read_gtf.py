@@ -12,6 +12,8 @@
 
 import logging
 from os.path import exists
+from typing import Optional, List, Union, Set, Dict, Any, Callable
+from io import StringIO, TextIOWrapper
 
 import polars 
 
@@ -89,10 +91,56 @@ DEFAULT_COLUMN_DTYPES = {
 }
 
 def parse_with_polars_lazy(
-        filepath_or_buffer,
-        split_attributes=True,
-        features=None,
-        fix_quotes_columns=["attribute"]):
+        filepath_or_buffer: Union[str, StringIO, TextIOWrapper],
+        split_attributes: bool = True,
+        features: Optional[List[str]] = None,
+        fix_quotes_columns: List[str] = ["attribute"]
+    ) -> polars.LazyFrame:
+    """
+    Parse a GTF file using Polars lazy evaluation for memory efficiency.
+    
+    This function reads a GTF (Gene Transfer Format) file and returns a Polars
+    LazyFrame with the parsed data. The lazy evaluation allows for efficient
+    processing of large files by deferring computation until explicitly requested.
+    
+    Parameters
+    ----------
+    filepath_or_buffer : str, StringIO, or TextIOWrapper
+        Path to the GTF file or a file-like buffer object containing GTF data.
+        
+    split_attributes : bool, default True
+        If True, splits the attribute column on semicolons and creates an
+        'attribute_split' column containing a list of attribute strings.
+        
+    features : list of str, optional
+        If provided, only rows with feature types in this list will be included
+        in the output. If None, all features are included.
+        
+    fix_quotes_columns : list of str, default ["attribute"]
+        Column names where quote-related formatting issues should be fixed.
+        This addresses common formatting problems in GTF files like trailing
+        semicolons in quoted values.
+        
+    Returns
+    -------
+    polars.LazyFrame
+        A Polars LazyFrame containing the parsed GTF data with the standard
+        GTF columns: seqname, source, feature, start, end, score, strand,
+        frame, and attribute (plus attribute_split if split_attributes=True).
+        
+    Raises
+    ------
+    ParsingError
+        If the GTF file doesn't have the expected number of columns.
+        
+    Examples
+    --------
+    >>> df_lazy = parse_with_polars_lazy("example.gtf")
+    >>> df = df_lazy.collect()  # Execute the lazy computation
+    
+    >>> # Filter for specific features
+    >>> df_lazy = parse_with_polars_lazy("example.gtf", features=["gene", "exon"])
+    """
     # use a global string cache so that all strings get intern'd into
     # a single numbering system
     polars.enable_string_cache()
@@ -139,7 +187,16 @@ def parse_gtf(
         filepath_or_buffer, 
         split_attributes=True, 
         features=None,
-        fix_quotes_columns=["attribute"]):
+        fix_quotes_columns=["attribute"]
+    ) -> polars.DataFrame:
+    """
+    Parse a GTF file using Polars lazy evaluation for memory efficiency.
+    
+    This function reads a GTF (Gene Transfer Format) file and returns a Polars
+    DataFrame with the parsed data. The lazy evaluation allows for efficient
+    processing of large files by deferring computation until explicitly requested.
+    """
+    
     df_lazy = parse_with_polars_lazy(
         filepath_or_buffer=filepath_or_buffer,
         split_attributes=split_attributes,
@@ -152,9 +209,10 @@ def parse_gtf_pandas(*args, **kwargs):
 
     
 def parse_gtf_and_expand_attributes(
-        filepath_or_buffer,
-        restrict_attribute_columns=None,
-        features=None):
+        filepath_or_buffer: Union[str, StringIO, TextIOWrapper],
+        restrict_attribute_columns: Optional[Union[List[str], Set[str]]] = None,
+        features: Optional[List[str]] = None
+    ) -> polars.DataFrame:
     """
     Parse lines into column->values dictionary and then expand
     the 'attribute' column into multiple columns. This expansion happens
@@ -193,14 +251,15 @@ def parse_gtf_and_expand_attributes(
     
 
 def read_gtf(
-        filepath_or_buffer,
-        expand_attribute_column=True,
-        infer_biotype_column=False,
-        column_converters={},
-        column_cast_types={},
-        usecols=None,
-        features=None,
-        result_type='polars'):
+        filepath_or_buffer: Union[str, StringIO, TextIOWrapper],
+        expand_attribute_column: bool = True,
+        infer_biotype_column: bool = False,
+        column_converters: Dict[str, Callable] = {},
+        column_cast_types: Dict[str, Any] = {},
+        usecols: Optional[List[str]] = None,
+        features: Optional[List[str]] = None,
+        result_type: str = 'polars'
+    ) -> Union[polars.DataFrame, Dict[str, Any]]:
     """
     Parse a GTF into a dictionary mapping column names to sequences of values.
 
