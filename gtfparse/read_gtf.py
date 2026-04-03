@@ -110,6 +110,9 @@ def parse_with_polars_lazy(
     except polars.exceptions.ShapeError:
         raise ParsingError("Wrong number of columns")
 
+    # Drop empty lines that may appear as all-null rows
+    df = df.filter(polars.col("seqname").is_not_null())
+
     df = df.with_columns([
         polars.col("frame").fill_null(0),
         polars.col("attribute").str.replace_all('"', "'")
