@@ -13,6 +13,7 @@
 import logging
 from collections import OrderedDict
 from sys import intern
+from typing import List, Optional, Union, Any
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,10 +21,11 @@ logger = logging.getLogger(__name__)
 
 
 def expand_attribute_strings(
-        attribute_strings,
-        quote_char="'",
-        missing_value="",
-        usecols=None):
+        attribute_strings: List[str],
+        quote_char: str = "'",
+        missing_value: Any = "",
+        usecols: Optional[List[str]] = None
+    ) -> OrderedDict[str, List[Any]]:
     """
     The last column of GTF has a variable number of key value pairs
     of the format: "key1 value1; key2 value2;"
