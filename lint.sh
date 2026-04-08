@@ -1,8 +1,6 @@
 #!/bin/bash
 set -o errexit
 
-find . -name '*.py' \
-  | xargs pylint \
-  --errors-only 
+ruff check gtfparse/ tests/
 
-echo 'Passes pylint check'
+echo 'Passes ruff check'
