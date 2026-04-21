@@ -1,6 +1,13 @@
-#!/bin/bash
-set -o errexit
+#!/usr/bin/env bash
 
-ruff check gtfparse/ tests/
+set -e
 
-echo 'Passes ruff check'
+SOURCES="gtfparse tests"
+
+echo "Running ruff check..."
+ruff check $SOURCES
+
+echo "Running ruff format check..."
+ruff format --check $SOURCES
+
+echo "All checks passed!"

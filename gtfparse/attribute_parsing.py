@@ -18,12 +18,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-
-def expand_attribute_strings(
-        attribute_strings,
-        quote_char="'",
-        missing_value="",
-        usecols=None):
+def expand_attribute_strings(attribute_strings, quote_char="'", missing_value="", usecols=None):
     """
     The last column of GTF has a variable number of key value pairs
     of the format: "key1 value1; key2 value2;"
@@ -66,7 +61,7 @@ def expand_attribute_strings(
     # and pair of try/except blocks in the loop.
     column_interned_strings = {}
 
-    for (i, kv_strings) in enumerate(attribute_strings):
+    for i, kv_strings in enumerate(attribute_strings):
         if type(kv_strings) is str:
             kv_strings = kv_strings.split(";")
         for kv in kv_strings:
@@ -92,7 +87,7 @@ def expand_attribute_strings(
 
             if value[0] == quote_char:
                 value = value.replace(quote_char, "")
-                
+
             try:
                 column = extra_columns[column_name]
                 # if an attribute is used repeatedly then
@@ -108,9 +103,5 @@ def expand_attribute_strings(
                 extra_columns[column_name] = column
                 column_order.append(column_name)
 
-
-
     logging.info("Extracted GTF attributes: %s" % column_order)
-    return OrderedDict(
-        (column_name, extra_columns[column_name])
-        for column_name in column_order)
+    return OrderedDict((column_name, extra_columns[column_name]) for column_name in column_order)

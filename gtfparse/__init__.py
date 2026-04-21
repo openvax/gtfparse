@@ -14,23 +14,23 @@ from .attribute_parsing import expand_attribute_strings
 from .create_missing_features import create_missing_features
 from .parsing_error import ParsingError
 from .read_gtf import (
-    read_gtf,
-    parse_gtf,
-    parse_gtf_pandas,
-    parse_gtf_and_expand_attributes,
     REQUIRED_COLUMNS,
+    parse_gtf,
+    parse_gtf_and_expand_attributes,
+    parse_gtf_pandas,
+    read_gtf,
 )
 
-__version__ = "2.6.2"
+__version__ = "2.6.3"
 
 __all__ = [
-    "__version__",
-    "expand_attribute_strings",
-    "create_missing_features",
-    "parse_gtf_and_expand_attributes",
     "REQUIRED_COLUMNS",
     "ParsingError",
-    "read_gtf",
+    "__version__",
+    "create_missing_features",
+    "expand_attribute_strings",
     "parse_gtf",
+    "parse_gtf_and_expand_attributes",
     "parse_gtf_pandas",
+    "read_gtf",
 ]
