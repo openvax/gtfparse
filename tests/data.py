@@ -1,5 +1,6 @@
 import os
 
+
 def data_path(name):
     """
     Return the absolute path to a file in the varcode/test/data directory.

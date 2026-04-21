@@ -1,7 +1,9 @@
 from gtfparse import read_gtf
+
 from .data import data_path
 
 REFSEQ_GTF_PATH = data_path("refseq.ucsc.small.gtf")
+
 
 def _check_required_columns(gtf_dict):
     assert "feature" in gtf_dict, "Expected column named 'feature' in RefSeq GTF"
@@ -11,10 +13,16 @@ def _check_required_columns(gtf_dict):
     assert "exon" in features, "No exon features in GTF (available: %s)" % features
     assert "CDS" in features, "No CDS features in GTF (available: %s)" % features
 
+
 def test_read_refseq_gtf_as_dataframe():
     gtf_df = read_gtf(REFSEQ_GTF_PATH)
     _check_required_columns(gtf_df)
 
+
 def test_read_refseq_and_transform_columns():
-    gtf_df = read_gtf(REFSEQ_GTF_PATH, column_converters={"start": int, "end": int}, column_cast_types={"score": float})
+    gtf_df = read_gtf(
+        REFSEQ_GTF_PATH,
+        column_converters={"start": int, "end": int},
+        column_cast_types={"score": float},
+    )
     print(gtf_df)
