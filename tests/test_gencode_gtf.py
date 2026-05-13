@@ -128,9 +128,13 @@ def test_version_columns_handle_missing_values():
 
 
 def test_cast_version_columns_false_keeps_strings():
+    import pandas as pd
+
     df = read_gtf(GENCODE_GTF_PATH, cast_version_columns=False, result_type="pandas")
-    # column is still object/string when opted out
-    assert df["gene_version"].dtype == object
+    # column is still string-typed when opted out — accept either the legacy
+    # object dtype or pandas' newer StringDtype, depending on the installed
+    # pandas version.
+    assert pd.api.types.is_string_dtype(df["gene_version"])
     gene_rows = df[df["feature"] == "gene"].reset_index(drop=True)
     assert gene_rows.loc[0, "gene_version"] == "5"
 
