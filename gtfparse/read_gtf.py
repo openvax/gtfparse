@@ -209,20 +209,26 @@ def _apply_attribute_aliases(result_df, attribute_aliases):
     """
     Rename alias attribute columns onto canonical names in-place.
 
-    For each (alias -> canonical) pair:
+    For each (alias -> canonical) pair, in iteration order:
       * if only the alias is present, rename it to the canonical name.
       * if both are present, drop the alias and warn (canonical wins).
       * if neither is present, do nothing.
+
+    When two aliases target the same canonical (e.g. both ``gene_type``
+    and a hypothetical ``gene_kind`` map to ``gene_biotype``), the first
+    rename in iteration order wins; subsequent aliases targeting an
+    already-renamed canonical are treated as collisions, dropped, and
+    warned about.
     """
     if not attribute_aliases:
         return result_df
-    existing = set(result_df.columns)
+    columns_present = set(result_df.columns)
     rename_map = {}
     drop_aliases = []
     for alias, canonical in attribute_aliases.items():
-        if alias not in existing:
+        if alias not in columns_present:
             continue
-        if canonical in existing:
+        if canonical in columns_present:
             logger.warning(
                 "Both alias column '%s' and canonical column '%s' are present; "
                 "dropping alias and keeping canonical values.",
@@ -232,6 +238,11 @@ def _apply_attribute_aliases(result_df, attribute_aliases):
             drop_aliases.append(alias)
         else:
             rename_map[alias] = canonical
+            # Reflect the rename in the running column set so a later
+            # alias mapping to the same canonical sees the collision
+            # instead of silently producing a duplicate-named column.
+            columns_present.discard(alias)
+            columns_present.add(canonical)
     if drop_aliases:
         result_df = result_df.drop(columns=drop_aliases)
     if rename_map:
@@ -323,9 +334,24 @@ def read_gtf(
     if type(filepath_or_buffer) is str and not exists(filepath_or_buffer):
         raise ValueError("GTF file does not exist: %s" % filepath_or_buffer)
 
+    # If usecols asks for a canonical column that's only present in the
+    # GTF under an alias name, expand the parse-time column filter to
+    # also pull the alias through — otherwise it gets dropped at parse
+    # time before _apply_attribute_aliases can see it. The end-of-function
+    # usecols filter still narrows the result down to the canonical name.
+    parse_usecols = usecols
+    if usecols is not None and attribute_aliases:
+        usecols_set = set(usecols)
+        parse_usecols = set(usecols_set)
+        for alias, canonical in attribute_aliases.items():
+            if canonical in usecols_set:
+                parse_usecols.add(alias)
+
     if expand_attribute_column:
         result_df = parse_gtf_and_expand_attributes(
-            filepath_or_buffer, restrict_attribute_columns=usecols, features=features
+            filepath_or_buffer,
+            restrict_attribute_columns=parse_usecols,
+            features=features,
         )
     else:
         result_df = parse_gtf(result_df, features=features)
