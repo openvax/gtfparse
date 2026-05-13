@@ -13,6 +13,7 @@
 import logging
 from os.path import exists
 
+import pandas as pd
 import polars
 
 from .attribute_parsing import expand_attribute_strings
@@ -20,6 +21,27 @@ from .parsing_error import ParsingError
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+# GENCODE GTFs use *_type where Ensembl GTFs use *_biotype. Pass this
+# (or a superset) as `attribute_aliases` to read_gtf to normalize a
+# GENCODE-format GTF onto the Ensembl column names that downstream
+# tools like pyensembl expect.
+GENCODE_BIOTYPE_ALIASES = {
+    "gene_type": "gene_biotype",
+    "transcript_type": "transcript_biotype",
+}
+
+
+# Ensembl-style attribute columns that are always integer-valued when
+# present. read_gtf casts these from string to pandas nullable Int64 by
+# default; pass cast_version_columns=False to keep them as strings.
+INTEGER_VERSION_COLUMNS = (
+    "gene_version",
+    "transcript_version",
+    "protein_version",
+    "exon_version",
+)
 
 
 """
@@ -183,6 +205,65 @@ def parse_gtf_and_expand_attributes(
     )
 
 
+def _apply_attribute_aliases(result_df, attribute_aliases):
+    """
+    Rename alias attribute columns onto canonical names in-place.
+
+    For each (alias -> canonical) pair, in iteration order:
+      * if only the alias is present, rename it to the canonical name.
+      * if both are present, drop the alias and warn (canonical wins).
+      * if neither is present, do nothing.
+
+    When two aliases target the same canonical (e.g. both ``gene_type``
+    and a hypothetical ``gene_kind`` map to ``gene_biotype``), the first
+    rename in iteration order wins; subsequent aliases targeting an
+    already-renamed canonical are treated as collisions, dropped, and
+    warned about.
+    """
+    if not attribute_aliases:
+        return result_df
+    columns_present = set(result_df.columns)
+    rename_map = {}
+    drop_aliases = []
+    for alias, canonical in attribute_aliases.items():
+        if alias not in columns_present:
+            continue
+        if canonical in columns_present:
+            logger.warning(
+                "Both alias column '%s' and canonical column '%s' are present; "
+                "dropping alias and keeping canonical values.",
+                alias,
+                canonical,
+            )
+            drop_aliases.append(alias)
+        else:
+            rename_map[alias] = canonical
+            # Reflect the rename in the running column set so a later
+            # alias mapping to the same canonical sees the collision
+            # instead of silently producing a duplicate-named column.
+            columns_present.discard(alias)
+            columns_present.add(canonical)
+    if drop_aliases:
+        result_df = result_df.drop(columns=drop_aliases)
+    if rename_map:
+        result_df = result_df.rename(columns=rename_map)
+    return result_df
+
+
+def _cast_version_columns(result_df, version_columns=INTEGER_VERSION_COLUMNS):
+    """
+    Cast known Ensembl *_version attribute columns from strings to
+    pandas nullable Int64 in-place. Missing/empty values become pd.NA.
+    """
+    for column_name in version_columns:
+        if column_name not in result_df.columns:
+            continue
+        result_df[column_name] = pd.to_numeric(
+            result_df[column_name].replace("", None), errors="coerce"
+        ).astype("Int64")
+    return result_df
+
+
 def read_gtf(
     filepath_or_buffer,
     expand_attribute_column=True,
@@ -192,6 +273,8 @@ def read_gtf(
     usecols=None,
     features=None,
     result_type="polars",
+    attribute_aliases=None,
+    cast_version_columns=True,
 ):
     """
     Parse a GTF into a dictionary mapping column names to sequences of values.
@@ -231,13 +314,44 @@ def read_gtf(
     result_type : One of 'polars', 'pandas', or 'dict'
         Default behavior is to return a Polars DataFrame, but will convert to
         Pandas DataFrame or dictionary if specified.
+
+    attribute_aliases : dict of str -> str, optional
+        Maps alias attribute names onto canonical ones. After attributes
+        are expanded into columns, each alias column is renamed to its
+        canonical name when the canonical column is absent. If both are
+        present the alias is dropped and a warning is logged. Pass
+        `GENCODE_BIOTYPE_ALIASES` to normalize a GENCODE GTF's
+        `gene_type`/`transcript_type` onto Ensembl's
+        `gene_biotype`/`transcript_biotype`.
+
+    cast_version_columns : bool
+        When True (default), cast the well-known integer version
+        attribute columns (`gene_version`, `transcript_version`,
+        `protein_version`, `exon_version`) from strings to pandas
+        nullable Int64 when present. Set to False to keep them as
+        strings.
     """
     if type(filepath_or_buffer) is str and not exists(filepath_or_buffer):
         raise ValueError("GTF file does not exist: %s" % filepath_or_buffer)
 
+    # If usecols asks for a canonical column that's only present in the
+    # GTF under an alias name, expand the parse-time column filter to
+    # also pull the alias through — otherwise it gets dropped at parse
+    # time before _apply_attribute_aliases can see it. The end-of-function
+    # usecols filter still narrows the result down to the canonical name.
+    parse_usecols = usecols
+    if usecols is not None and attribute_aliases:
+        usecols_set = set(usecols)
+        parse_usecols = set(usecols_set)
+        for alias, canonical in attribute_aliases.items():
+            if canonical in usecols_set:
+                parse_usecols.add(alias)
+
     if expand_attribute_column:
         result_df = parse_gtf_and_expand_attributes(
-            filepath_or_buffer, restrict_attribute_columns=usecols, features=features
+            filepath_or_buffer,
+            restrict_attribute_columns=parse_usecols,
+            features=features,
         )
     else:
         result_df = parse_gtf(result_df, features=features)
@@ -266,6 +380,16 @@ def read_gtf(
             if column_name in column_cast_types:
                 column_type = column_cast_types[column_name]
                 result_df[column_name] = result_df[column_name].astype(column_type)
+
+    # Rename alias attribute columns onto their canonical names. Done before
+    # infer_biotype_column so an aliased gene_biotype/transcript_biotype is
+    # visible to the inference logic.
+    result_df = _apply_attribute_aliases(result_df, attribute_aliases)
+
+    # Cast Ensembl *_version columns from strings to nullable integers so
+    # downstream consumers (e.g. pyensembl) don't have to int(...) themselves.
+    if cast_version_columns:
+        result_df = _cast_version_columns(result_df)
 
     # Hackishly infer whether the values in the 'source' column of this GTF
     # are actually representing a biotype by checking for the most common
