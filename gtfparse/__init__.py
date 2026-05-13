@@ -14,6 +14,8 @@ from .attribute_parsing import expand_attribute_strings
 from .create_missing_features import create_missing_features
 from .parsing_error import ParsingError
 from .read_gtf import (
+    GENCODE_BIOTYPE_ALIASES,
+    INTEGER_VERSION_COLUMNS,
     REQUIRED_COLUMNS,
     parse_gtf,
     parse_gtf_and_expand_attributes,
@@ -21,9 +23,11 @@ from .read_gtf import (
     read_gtf,
 )
 
-__version__ = "2.6.3"
+__version__ = "2.7.0"
 
 __all__ = [
+    "GENCODE_BIOTYPE_ALIASES",
+    "INTEGER_VERSION_COLUMNS",
     "REQUIRED_COLUMNS",
     "ParsingError",
     "__version__",
