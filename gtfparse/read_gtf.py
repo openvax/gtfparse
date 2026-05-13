@@ -354,7 +354,10 @@ def read_gtf(
             features=features,
         )
     else:
-        result_df = parse_gtf(result_df, features=features)
+        # When the caller opts out of attribute expansion they want the raw
+        # 'attribute' column verbatim — no need to also produce the
+        # 'attribute_split' helper that parse_gtf adds by default.
+        result_df = parse_gtf(filepath_or_buffer, features=features, split_attributes=False)
 
     # converting back to pandas here because Polars bugs manifest
     # as `pyo3_runtime.PanicException: assertion `left == right` failed: impl error`
