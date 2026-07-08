@@ -22,6 +22,7 @@ from .read_gtf import (
     parse_gtf_pandas,
     read_gtf,
 )
+from .write_gtf import write_gtf
 
 __version__ = "2.7.1"
 
@@ -37,4 +38,5 @@ __all__ = [
     "parse_gtf_and_expand_attributes",
     "parse_gtf_pandas",
     "read_gtf",
+    "write_gtf",
 ]
