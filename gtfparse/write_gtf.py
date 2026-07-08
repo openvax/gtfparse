@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import gzip
 import logging
 from collections.abc import Iterable
 from pathlib import Path
@@ -39,39 +40,71 @@ GTF_FIXED_COLUMNS = [
 # GTF uses a single dot to denote a missing value in the fixed columns.
 MISSING_VALUE = "."
 
-
-def _format_fixed_value(value) -> str:
-    """Render a fixed-column value, using '.' for missing values."""
-    if value is None:
-        return MISSING_VALUE
-    return str(value)
+# Name of the raw, unexpanded attribute column produced by
+# read_gtf(expand_attribute_column=False).
+RAW_ATTRIBUTE_COLUMN = "attribute"
 
 
-def _format_attributes(row: dict, attribute_columns: list[str], raw_column: Optional[str]) -> str:
+def _attribute_expr(attribute_columns: list[str]) -> polars.Expr:
     """
-    Build the GTF attribute field for a single row.
+    Build a polars expression that renders the GTF attribute field for each row
+    from a set of expanded attribute columns.
 
-    If ``raw_column`` is given (an unexpanded 'attribute' column) its value is
-    emitted verbatim. Otherwise each expanded attribute column is serialized as
-    ``key "value";`` and the pairs are joined with a single space, matching the
-    format produced by common GTF writers (and parsed by read_gtf).
+    Each column ``key`` becomes ``key "value";`` and the per-row pairs are
+    joined with a single space, matching the format emitted by Ensembl/GENCODE
+    and parsed by read_gtf.
 
-    Attributes whose value is None are omitted, since that is how read_gtf
-    represents a key that was absent on a given row. Note that a value must be
-    *None* to be skipped -- falsy-but-present values such as 0 or the empty
-    string are written out, so they survive a read/write round trip.
+    A pair is omitted for any row where the value is "absent". read_gtf marks an
+    absent key with null (numeric columns, e.g. the ``*_version`` fields) or the
+    empty string (string columns) and cannot distinguish absent from
+    present-but-empty, so we treat both null and "" as absent. Values that are
+    merely falsy but non-empty -- notably the string "0" -- are written and
+    survive a round trip (this is the regression that the naive ``if value:``
+    check in earlier drafts got wrong).
     """
-    if raw_column is not None:
-        raw = row[raw_column]
-        return "" if raw is None else str(raw)
+    if not attribute_columns:
+        return polars.lit("")
+    pairs = []
+    for name in attribute_columns:
+        value = polars.col(name).cast(polars.String)
+        pairs.append(
+            polars.when(value.is_null() | (value == ""))
+            .then(None)
+            .otherwise(polars.format('{} "{}";', polars.lit(name), value))
+        )
+    # ignore_nulls drops absent keys; fill_null covers the all-absent row so the
+    # surrounding line expression never collapses to null.
+    return polars.concat_str(pairs, separator=" ", ignore_nulls=True).fill_null("")
 
-    parts = []
-    for column_name in attribute_columns:
-        value = row[column_name]
-        if value is None:
-            continue
-        parts.append('%s "%s";' % (column_name, value))
-    return " ".join(parts)
+
+def _line_series(df: polars.DataFrame) -> polars.Series:
+    """
+    Turn a DataFrame into a Series of fully-formatted GTF lines (without
+    trailing newlines), building the whole thing with vectorized polars
+    expressions rather than per-row Python.
+    """
+    columns = df.columns
+    missing = [name for name in GTF_FIXED_COLUMNS if name not in columns]
+    if missing:
+        raise ValueError("DataFrame is missing required GTF column(s): %s" % ", ".join(missing))
+
+    # Fixed columns are always written in canonical order; nulls become '.'.
+    # Cast before fill_null so numeric columns accept the string sentinel.
+    fixed = [
+        polars.col(name).cast(polars.String).fill_null(MISSING_VALUE) for name in GTF_FIXED_COLUMNS
+    ]
+
+    if RAW_ATTRIBUTE_COLUMN in columns:
+        # Unexpanded read: the attribute column is already a formatted string.
+        attribute = polars.col(RAW_ATTRIBUTE_COLUMN).cast(polars.String).fill_null("")
+    else:
+        attribute_columns = [name for name in columns if name not in GTF_FIXED_COLUMNS]
+        attribute = _attribute_expr(attribute_columns)
+
+    # Always keep the 9th (attribute) field, even when empty, so every line has
+    # the nine tab-separated columns read_gtf expects.
+    line = polars.concat_str([*fixed, attribute], separator="\t")
+    return df.select(line.alias("_gtf_line")).get_column("_gtf_line")
 
 
 def write_gtf(
@@ -83,56 +116,52 @@ def write_gtf(
     Write a DataFrame of genomic features back out to a GTF file.
 
     This is the inverse of :func:`read_gtf`. A DataFrame produced by
-    ``read_gtf`` (whether the attribute column was expanded or not) can be
-    written back out and re-read to recover an equivalent DataFrame.
+    ``read_gtf`` (whether the attribute column was expanded into one column per
+    key or left as a raw ``attribute`` string) can be written back out and
+    re-read to recover an equivalent DataFrame.
 
     Parameters
     ----------
     df : polars.DataFrame or pandas.DataFrame
         Feature rows to write. Must contain the fixed GTF columns
         (seqname, source, feature, start, end, score, strand, frame).
-        Any additional columns are written as attributes, except a column
-        literally named 'attribute', which is treated as a pre-formatted
+        Any additional column is written as an attribute, except a column
+        literally named ``attribute``, which is treated as a pre-formatted
         attribute string and emitted verbatim.
 
     path : str or pathlib.Path
-        Destination file path. Any existing file is overwritten.
+        Destination file path. Any existing file is overwritten. If the path
+        ends in ``.gz`` the output is gzip-compressed (mirroring read_gtf,
+        which transparently reads gzip-compressed GTFs).
 
     header_lines : iterable of str, optional
         Lines to write at the top of the file before any feature rows, e.g.
         ``["##description: example", "##provider: GENCODE"]``. Each is written
-        verbatim on its own line, so include a leading '#' if you want it to be
-        parsed back as a comment.
+        verbatim on its own line, so include a leading ``#`` if you want it to
+        be parsed back as a comment.
+
+    Notes
+    -----
+    GTF has no escaping mechanism for the structural characters ``"`` and
+    ``;`` inside attribute values, and read_gtf strips quotes and splits on
+    ``;`` when parsing. Values returned by read_gtf therefore never contain
+    those characters, so any DataFrame obtained from read_gtf round-trips
+    exactly. A DataFrame built by hand whose attribute values contain ``"`` or
+    ``;`` cannot be represented losslessly and will not round-trip.
     """
     # Accept a pandas DataFrame too, since read_gtf(result_type="pandas")
-    # returns one; convert to polars so the row iteration below is uniform.
+    # returns one; convert to polars so the formatting below is uniform.
     if not isinstance(df, polars.DataFrame):
         df = polars.from_pandas(df)
 
-    columns = df.columns
-    fixed_columns = [name for name in GTF_FIXED_COLUMNS if name in columns]
-    missing_fixed = [name for name in GTF_FIXED_COLUMNS if name not in columns]
-    if missing_fixed:
-        raise ValueError(
-            "DataFrame is missing required GTF column(s): %s" % ", ".join(missing_fixed)
-        )
+    lines = _line_series(df)
 
-    # A column named 'attribute' is the raw, unexpanded attribute string;
-    # everything else that isn't a fixed column is an expanded attribute.
-    raw_column = "attribute" if "attribute" in columns else None
-    attribute_columns = [
-        name for name in columns if name not in GTF_FIXED_COLUMNS and name != "attribute"
-    ]
-
-    n_rows = 0
-    with open(path, "w") as output_file:
+    open_file = gzip.open if str(path).endswith(".gz") else open
+    with open_file(path, "wt", encoding="utf-8", newline="\n") as output_file:
         if header_lines is not None:
-            for line in header_lines:
-                output_file.write("%s\n" % line)
-        for row in df.iter_rows(named=True):
-            fixed_fields = [_format_fixed_value(row[name]) for name in fixed_columns]
-            attribute_field = _format_attributes(row, attribute_columns, raw_column)
-            output_file.write("%s\t%s\n" % ("\t".join(fixed_fields), attribute_field))
-            n_rows += 1
+            for header_line in header_lines:
+                output_file.write("%s\n" % header_line)
+        for line in lines:
+            output_file.write("%s\n" % line)
 
-    logger.info("Wrote %d GTF rows to %s", n_rows, path)
+    logger.info("Wrote %d GTF rows to %s", lines.len(), path)
