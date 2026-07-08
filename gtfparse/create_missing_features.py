@@ -15,7 +15,6 @@ from collections import OrderedDict
 
 import pandas as pd
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -58,9 +57,9 @@ def create_missing_features(dataframe, unique_keys={}, extra_columns={}, missing
 
     for feature_name, groupby_key in unique_keys.items():
         if feature_name in existing_features:
-            logging.info("Feature '%s' already exists in GTF data" % feature_name)
+            logger.info("Feature '%s' already exists in GTF data", feature_name)
             continue
-        logging.info("Creating rows for missing feature '%s'" % feature_name)
+        logger.info("Creating rows for missing feature '%s'", feature_name)
 
         # don't include rows where the groupby key was missing
         missing = pd.Series([x is None or x == "" for x in dataframe[groupby_key]])
