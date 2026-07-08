@@ -19,7 +19,6 @@ import polars
 from .attribute_parsing import expand_attribute_strings
 from .parsing_error import ParsingError
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -406,10 +405,10 @@ def read_gtf(
             # the 2nd column is the transcript_biotype (otherwise, it's the
             # gene_biotype)
             if "gene_biotype" not in column_names:
-                logging.info("Using column 'source' to replace missing 'gene_biotype'")
+                logger.info("Using column 'source' to replace missing 'gene_biotype'")
                 result_df["gene_biotype"] = result_df["source"]
             if "transcript_biotype" not in column_names:
-                logging.info("Using column 'source' to replace missing 'transcript_biotype'")
+                logger.info("Using column 'source' to replace missing 'transcript_biotype'")
                 result_df["transcript_biotype"] = result_df["source"]
 
     if usecols is not None:
