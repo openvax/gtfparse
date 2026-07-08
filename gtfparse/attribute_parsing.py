@@ -102,5 +102,5 @@ def expand_attribute_strings(attribute_strings, quote_char="'", missing_value=""
                 extra_columns[column_name] = column
                 column_order.append(column_name)
 
-    logger.info("Extracted GTF attributes: %s" % column_order)
+    logger.info("Extracted GTF attributes: %s", column_order)
     return OrderedDict((column_name, extra_columns[column_name]) for column_name in column_order)
