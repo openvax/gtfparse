@@ -22,8 +22,9 @@ from .read_gtf import (
     parse_gtf_pandas,
     read_gtf,
 )
+from .write_gtf import write_gtf
 
-__version__ = "2.7.2"
+__version__ = "2.8.0"
 
 __all__ = [
     "GENCODE_BIOTYPE_ALIASES",
@@ -37,4 +38,5 @@ __all__ = [
     "parse_gtf_and_expand_attributes",
     "parse_gtf_pandas",
     "read_gtf",
+    "write_gtf",
 ]
