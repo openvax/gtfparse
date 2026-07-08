@@ -143,11 +143,12 @@ def write_gtf(
     Notes
     -----
     GTF has no escaping mechanism for the structural characters ``"`` and
-    ``;`` inside attribute values, and read_gtf strips quotes and splits on
-    ``;`` when parsing. Values returned by read_gtf therefore never contain
-    those characters, so any DataFrame obtained from read_gtf round-trips
-    exactly. A DataFrame built by hand whose attribute values contain ``"`` or
-    ``;`` cannot be represented losslessly and will not round-trip.
+    ``;`` inside attribute values (nor for the tab and newline that delimit
+    columns and rows), and read_gtf strips quotes and splits on ``;`` when
+    parsing. Values returned by read_gtf therefore never contain those
+    characters, so any DataFrame obtained from read_gtf round-trips exactly. A
+    DataFrame built by hand whose attribute values contain ``"``, ``;``, a tab,
+    or a newline cannot be represented losslessly and will not round-trip.
     """
     # Accept a pandas DataFrame too, since read_gtf(result_type="pandas")
     # returns one; convert to polars so the formatting below is uniform.
@@ -156,7 +157,7 @@ def write_gtf(
 
     lines = _line_series(df)
 
-    open_file = gzip.open if str(path).endswith(".gz") else open
+    open_file = gzip.open if str(path).lower().endswith(".gz") else open
     with open_file(path, "wt", encoding="utf-8", newline="\n") as output_file:
         if header_lines is not None:
             for header_line in header_lines:

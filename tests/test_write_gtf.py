@@ -109,6 +109,56 @@ def test_gzip_output_round_trips(tmp_path):
     assert_frame_equal(df, read_gtf(str(out_path)), categorical_as_str=True)
 
 
+def test_gzip_detection_is_case_insensitive(tmp_path):
+    """An uppercase '.GZ' suffix is still gzip-compressed."""
+    df = read_gtf(data_path("refseq.ucsc.small.gtf"))
+    out_path = tmp_path / "out.GZ"
+    write_gtf(df, out_path)
+    assert out_path.read_bytes()[:2] == b"\x1f\x8b"
+
+
+def test_empty_dataframe_writes_no_rows(tmp_path):
+    """A zero-row DataFrame produces a file with only its header lines."""
+    empty = read_gtf(data_path("refseq.ucsc.small.gtf")).clear()
+    out_path = tmp_path / "empty.gtf"
+    write_gtf(empty, out_path, header_lines=["##empty"])
+    assert out_path.read_text() == "##empty\n"
+
+
+def test_fixed_columns_only(tmp_path):
+    """A DataFrame with only the fixed columns writes a valid 9-field line
+    (empty attribute field) and reads back."""
+    fixed_only = polars.DataFrame(
+        {
+            "seqname": ["chr1"],
+            "source": ["test"],
+            "feature": ["gene"],
+            "start": [1],
+            "end": [100],
+            "score": [None],
+            "strand": ["+"],
+            "frame": [None],
+        }
+    )
+    out_path = tmp_path / "fixed.gtf"
+    write_gtf(fixed_only, out_path)
+    # nine tab-separated fields, the last (attribute) empty
+    assert out_path.read_text().strip("\n").split("\t") == [
+        "chr1",
+        "test",
+        "gene",
+        "1",
+        "100",
+        ".",
+        "+",
+        ".",
+        "",
+    ]
+    # read_gtf accepts it (no attribute columns to expand)
+    recovered = read_gtf(str(out_path), expand_attribute_column=False)
+    assert recovered["seqname"].to_list() == ["chr1"]
+
+
 # ---------------------------------------------------------------------------
 # Attribute / missing-value semantics.
 # ---------------------------------------------------------------------------
