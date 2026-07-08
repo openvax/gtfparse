@@ -19,7 +19,6 @@ import polars
 from .attribute_parsing import expand_attribute_strings
 from .parsing_error import ParsingError
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

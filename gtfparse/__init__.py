@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+
 from .attribute_parsing import expand_attribute_strings
 from .create_missing_features import create_missing_features
 from .parsing_error import ParsingError
@@ -22,6 +24,12 @@ from .read_gtf import (
     parse_gtf_pandas,
     read_gtf,
 )
+
+# Per the Python logging HOWTO ("Configuring Logging for a Library"), attach a
+# no-op handler to the package logger so that importing gtfparse neither emits
+# log output nor reconfigures the root logger; applications opt in to gtfparse
+# logs through their own logging configuration.
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 __version__ = "2.7.1"
 

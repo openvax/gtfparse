@@ -14,7 +14,6 @@ import logging
 from collections import OrderedDict
 from sys import intern
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
