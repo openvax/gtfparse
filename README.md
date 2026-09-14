@@ -10,9 +10,13 @@ Parsing tools for GTF (gene transfer format) files.
 
 # Example usage
 
-## Parsing all rows of a GTF file into a Pandas DataFrame
+## Parsing all rows of a GTF file into a DataFrame
+
+`read_gtf` returns a Polars DataFrame. Pass `result_type="pandas"` to get a
+pandas DataFrame instead.
 
 ```python
+import polars
 from gtfparse import read_gtf
 
 # returns GTF with essential columns such as "feature", "seqname", "start", "end"
@@ -20,26 +24,26 @@ from gtfparse import read_gtf
 df = read_gtf("gene_annotations.gtf")
 
 # filter DataFrame to gene entries on chrY
-df_genes = df[df["feature"] == "gene"]
-df_genes_chrY = df_genes[df_genes["seqname"] == "Y"]
+df_genes = df.filter(polars.col("feature") == "gene")
+df_genes_chrY = df_genes.filter(polars.col("seqname") == "Y")
+
+# all rows (gene, transcripts, exons, ...) for one gene
+df_tp53 = df.filter(polars.col("gene_id") == "ENSG00000141510")
 ```
 
 
-## Getting gene FPKM values from a StringTie GTF file
+## Getting transcript FPKM values from a StringTie GTF file
 
 ```python
+import polars
 from gtfparse import read_gtf
 
 df = read_gtf(
     "Transcripts.gtf",
     column_converters={"FPKM": float})
 
-gene_fpkms = {
-    gene_name: fpkm
-    for (gene_name, fpkm, feature)
-    in zip(df["seqname"], df["FPKM"], df["feature"])
-    if feature == "gene"
-}
+transcripts = df.filter(polars.col("feature") == "transcript")
+transcript_fpkms = dict(zip(transcripts["transcript_id"], transcripts["FPKM"]))
 ```
 
 
