@@ -110,9 +110,10 @@ DEFAULT_COLUMN_DTYPES = {
 def parse_with_polars_lazy(
     filepath_or_buffer, split_attributes=True, features=None, fix_quotes_columns=["attribute"]
 ):
-    # use a global string cache so that all strings get intern'd into
-    # a single numbering system
-    polars.enable_string_cache()
+    # Categories shares categorical mappings on modern Polars. Older releases
+    # need the global string cache for categoricals from separate reads to match.
+    if not hasattr(polars, "Categories"):
+        polars.enable_string_cache()
     kwargs = {
         "has_header": False,
         "separator": "\t",
