@@ -26,6 +26,7 @@ Separately verify Ensembl and Ensembl Genomes validators and matching/stale
 - [x] Implement compatibility guard and regression tests; bump patch version.
 - [x] Add CI coverage and verify modern/legacy Polars behavior.
 - [x] Run `./lint.sh` and `./test.sh`; review the diff and record results.
+- [ ] Aggregate coverage from modern and legacy Polars jobs; confirm Coveralls.
 - [ ] Open and merge a PR after checks pass.
 - [ ] Run `./deploy.sh` from clean master and verify PyPI publication.
 - [ ] Review relevant open issues and identify the next dependency/urgency group.
@@ -40,6 +41,12 @@ modern-only test skipped. The legacy run used pandas 3.0.6, also confirming that
 the categorical conversion remains functional there.
 Polars 1.32.0, the first release with Categories, also passes all 89 tests
 (95% coverage). All three full-suite runs treated deprecations as errors.
+
+Replan after the first CI run: all five matrix jobs passed, but Coveralls only
+received the latest-Polars run and reported the intentionally unused legacy
+setter as uncovered. Combine the three Python 3.11 coverage reports using
+Coveralls parallel uploads and a finalization job. Preserve the coverage gate.
+Tracked as https://github.com/openvax/gtfparse/issues/79 and fixed in PR #78.
 
 On 2026-09-28, the Ensembl release-115 human toplevel DNA endpoint returned
 strong ETag `"37d18890-63953fb016ef5"` and size 936478864. Ensembl Genomes

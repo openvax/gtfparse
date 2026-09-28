@@ -46,5 +46,18 @@ jobs:
         run: |
           ./test.sh -W error::DeprecationWarning
       - name: Publish coverage to Coveralls
-        if: matrix.python-version == '3.11' && matrix.polars-version == 'latest'
+        if: matrix.python-version == '3.11'
         uses: coverallsapp/github-action@v2.2.3
+        with:
+          flag-name: polars-${{ matrix.polars-version }}
+          parallel: true
+
+  coverage:
+    needs: build
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Finish combined coverage report
+        uses: coverallsapp/github-action@v2.2.3
+        with:
+          parallel-finished: true
