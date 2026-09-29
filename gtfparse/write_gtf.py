@@ -142,13 +142,10 @@ def write_gtf(
 
     Notes
     -----
-    GTF has no escaping mechanism for the structural characters ``"`` and
-    ``;`` inside attribute values (nor for the tab and newline that delimit
-    columns and rows), and read_gtf strips quotes and splits on ``;`` when
-    parsing. Values returned by read_gtf therefore never contain those
-    characters, so any DataFrame obtained from read_gtf round-trips exactly. A
-    DataFrame built by hand whose attribute values contain ``"``, ``;``, a tab,
-    or a newline cannot be represented losslessly and will not round-trip.
+    Attribute values are enclosed in double quotes, so spaces, apostrophes,
+    and semicolons round-trip. This writer does not escape embedded double
+    quotes, tabs, or newlines; values containing those characters are outside
+    its round-trip guarantees. Empty and missing attributes are both omitted.
     """
     # Accept a pandas DataFrame too, since read_gtf(result_type="pandas")
     # returns one; convert to polars so the formatting below is uniform.

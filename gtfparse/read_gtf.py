@@ -16,7 +16,7 @@ from os.path import exists
 import pandas as pd
 import polars
 
-from .attribute_parsing import expand_attribute_strings
+from .attribute_parsing import ATTRIBUTE_PATTERN, expand_attribute_strings
 from .parsing_error import ParsingError
 
 logger = logging.getLogger(__name__)
@@ -108,7 +108,7 @@ DEFAULT_COLUMN_DTYPES = {
 
 
 def parse_with_polars_lazy(
-    filepath_or_buffer, split_attributes=True, features=None, fix_quotes_columns=["attribute"]
+    filepath_or_buffer, split_attributes=True, features=None, fix_quotes_columns=None
 ):
     # Categories shares categorical mappings on modern Polars. Older releases
     # need the global string cache for categoricals from separate reads to match.
@@ -120,6 +120,7 @@ def parse_with_polars_lazy(
         "comment_prefix": "#",
         "null_values": ".",
         "schema_overrides": DEFAULT_COLUMN_DTYPES,
+        "quote_char": None,
     }
     try:
         df = polars.read_csv(filepath_or_buffer, new_columns=REQUIRED_COLUMNS, **kwargs).lazy()
@@ -129,11 +130,9 @@ def parse_with_polars_lazy(
     # Drop empty lines that may appear as all-null rows
     df = df.filter(polars.col("seqname").is_not_null())
 
-    df = df.with_columns(
-        [polars.col("frame").fill_null(0), polars.col("attribute").str.replace_all('"', "'")]
-    )
+    df = df.with_columns(polars.col("frame").fill_null(0))
 
-    for fix_quotes_column in fix_quotes_columns:
+    for fix_quotes_column in fix_quotes_columns or ():
         # Catch mistaken semicolons by replacing "xyz;" with "xyz"
         # Required to do this since the Ensembl GTF for Ensembl
         # release 78 has mistakes such as:
@@ -147,28 +146,55 @@ def parse_with_polars_lazy(
         df = df.filter(polars.col("feature").is_in(features))
 
     if split_attributes:
-        df = df.with_columns([polars.col("attribute").str.split(";").alias("attribute_split")])
+        df = df.with_columns(
+            polars.col("attribute").str.extract_all(ATTRIBUTE_PATTERN).alias("attribute_split")
+        )
     return df
 
 
 def parse_gtf(
-    filepath_or_buffer, split_attributes=True, features=None, fix_quotes_columns=["attribute"]
+    filepath_or_buffer,
+    split_attributes=True,
+    features=None,
+    fix_quotes_columns=None,
+    *,
+    progress_callback=None,
 ):
+    """Read the fixed GTF columns, preserving raw attribute text.
+
+    If split_attributes is True, add an attribute_split list column with
+    quoted key/value pairs kept intact. Legacy semicolon cleanup is available
+    by explicitly setting fix_quotes_columns; it is disabled by default.
+    progress_callback follows read_gtf's contract and emits only the read stage.
+    """
+    if progress_callback is not None:
+        progress_callback("read", 0, None)
     df_lazy = parse_with_polars_lazy(
         filepath_or_buffer=filepath_or_buffer,
         split_attributes=split_attributes,
         features=features,
         fix_quotes_columns=fix_quotes_columns,
     )
-    return df_lazy.collect()
+    df = df_lazy.collect()
+    if progress_callback is not None:
+        progress_callback("read", len(df), len(df))
+    return df
 
 
 def parse_gtf_pandas(*args, **kwargs):
-    return parse_gtf(*args, **kwargs).to_pandas()
+    """Like parse_gtf, returning pandas and reporting read/convert progress."""
+    df = parse_gtf(*args, **kwargs)
+    progress_callback = kwargs.get("progress_callback")
+    if progress_callback is not None:
+        progress_callback("convert", 0, None)
+    result = df.to_pandas()
+    if progress_callback is not None:
+        progress_callback("convert", len(result), len(result))
+    return result
 
 
 def parse_gtf_and_expand_attributes(
-    filepath_or_buffer, restrict_attribute_columns=None, features=None
+    filepath_or_buffer, restrict_attribute_columns=None, features=None, *, progress_callback=None
 ):
     """
     Parse lines into column->values dictionary and then expand
@@ -181,26 +207,34 @@ def parse_gtf_and_expand_attributes(
     ----------
     filepath_or_buffer : str or buffer object
 
-    chunksize : int
-
     restrict_attribute_columns : list/set of str or None
         If given, then only use these attribute columns.
 
     features : set or None
         Ignore entries which don't correspond to one of the supplied features
+
+    progress_callback : callable, optional
+        Follows read_gtf's callback contract, emitting read and attributes stages.
     """
-    df = parse_gtf(filepath_or_buffer=filepath_or_buffer, features=features, split_attributes=True)
+    df = parse_gtf(
+        filepath_or_buffer=filepath_or_buffer,
+        features=features,
+        split_attributes=False,
+        progress_callback=progress_callback,
+    )
     if type(restrict_attribute_columns) is str:
         restrict_attribute_columns = {restrict_attribute_columns}
     elif restrict_attribute_columns:
         restrict_attribute_columns = set(restrict_attribute_columns)
-    df.drop_in_place("attribute")
-    attribute_pairs = df.drop_in_place("attribute_split")
+    attributes = df.drop_in_place("attribute")
     return df.with_columns(
         [
             polars.Series(k, vs)
-            for (k, vs) in expand_attribute_strings(attribute_pairs).items()
-            if restrict_attribute_columns is None or k in restrict_attribute_columns
+            for (k, vs) in expand_attribute_strings(
+                attributes,
+                usecols=restrict_attribute_columns,
+                progress_callback=progress_callback,
+            ).items()
         ]
     )
 
@@ -275,9 +309,11 @@ def read_gtf(
     result_type="polars",
     attribute_aliases=None,
     cast_version_columns=True,
+    *,
+    progress_callback=None,
 ):
     """
-    Parse a GTF into a dictionary mapping column names to sequences of values.
+    Parse a GTF into a Polars DataFrame, pandas DataFrame, or dictionary.
 
     Parameters
     ----------
@@ -330,7 +366,20 @@ def read_gtf(
         `protein_version`, `exon_version`) from strings to pandas
         nullable Int64 when present. Set to False to keep them as
         strings.
+
+    progress_callback : callable, optional
+        Called synchronously as ``callback(stage, completed, total)``. Counts
+        are rows retained after feature filtering. Stages occur in order:
+        ``read``, ``attributes`` (if expanded), and ``convert``. Read and convert
+        emit ``(stage, 0, None)`` before work and ``(stage, rows, rows)`` after
+        success; None means the total is unknown, so show an indeterminate
+        indicator. Attribute expansion reports a known total at the start,
+        every 10,000 rows, and at completion (one event for zero rows).
+        Exceptions, including those raised by the callback, propagate without
+        reporting completion of the failed stage. Default: no callback or UI.
     """
+    if result_type not in ("polars", "pandas", "dict"):
+        raise ValueError("result_type must be one of 'polars', 'pandas', or 'dict'")
     if type(filepath_or_buffer) is str and not exists(filepath_or_buffer):
         raise ValueError("GTF file does not exist: %s" % filepath_or_buffer)
 
@@ -352,13 +401,21 @@ def read_gtf(
             filepath_or_buffer,
             restrict_attribute_columns=parse_usecols,
             features=features,
+            progress_callback=progress_callback,
         )
     else:
         # When the caller opts out of attribute expansion they want the raw
         # 'attribute' column verbatim — no need to also produce the
         # 'attribute_split' helper that parse_gtf adds by default.
-        result_df = parse_gtf(filepath_or_buffer, features=features, split_attributes=False)
+        result_df = parse_gtf(
+            filepath_or_buffer,
+            features=features,
+            split_attributes=False,
+            progress_callback=progress_callback,
+        )
 
+    if progress_callback is not None:
+        progress_callback("convert", 0, None)
     # converting back to pandas here because Polars bugs manifest
     # as `pyo3_runtime.PanicException: assertion `left == right` failed: impl error`
     # and are generally insane to chase down
@@ -417,11 +474,12 @@ def read_gtf(
         valid_columns = [c for c in usecols if c in column_names]
         result_df = result_df[valid_columns]
 
-    result = None
     if result_type == "pandas":
         result = result_df
     elif result_type == "polars":
         result = polars.from_pandas(result_df)
-    elif result_type == "dict":
+    else:
         result = result_df.to_dict()
+    if progress_callback is not None:
+        progress_callback("convert", len(result_df), len(result_df))
     return result
