@@ -192,17 +192,13 @@ def test_missing_value_fixed_columns_use_dot(tmp_path):
     assert fields[7] == "."  # frame
 
 
-def test_structural_characters_are_not_round_trippable(tmp_path):
-    """GTF has no escaping for '"' or ';'; read_gtf strips quotes and splits on
-    ';'. Pin that such values cannot round-trip so a future change is noticed."""
-    df = _minimal_df(gene_id=["A;B"], note=['say "hi"'])
+def test_quoted_attribute_values_round_trip(tmp_path):
+    df = _minimal_df(gene_id=["A;B"], note=["O'Brien; says hello"])
     out_path = tmp_path / "special.gtf"
     write_gtf(df, out_path)
     recovered = read_gtf(str(out_path))
-    # the semicolon split the value apart
-    assert recovered["gene_id"].to_list() != ["A;B"]
-    # the double quotes were stripped from the value
-    assert '"' not in recovered["note"][0]
+    assert recovered["gene_id"].to_list() == ["A;B"]
+    assert recovered["note"].to_list() == ["O'Brien; says hello"]
 
 
 def test_header_lines_are_written(tmp_path):

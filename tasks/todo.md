@@ -1,5 +1,7 @@
 # Issue #77: Polars string-cache compatibility
 
+Released in 2.8.1 via PR #78; the remaining release checklist below is historical.
+
 ## Specification
 
 `parse_with_polars_lazy` currently enables Polars' process-wide string cache on
@@ -57,3 +59,81 @@ If-Range returned `200`, so the client must restart instead of appending. The
 probe capped response size to avoid downloading the full genomes. This supports
 the strong-ETag path in openvax/datacache#80; an ETag is a representation
 validator, not an independently verified SHA-256 digest.
+
+# Issue #80: parsing progress and confirmed parsing bugs
+
+## Specification
+
+Scope stays within gtfparse. Add a keyword-only `progress_callback(stage,
+completed, total)` argument to `read_gtf`, `parse_gtf`,
+`parse_gtf_and_expand_attributes`, and `expand_attribute_strings` (and forward
+it through `parse_gtf_pandas`). Stages are `read`, `attributes`, and `convert`.
+Counts are rows retained after feature filtering. Opaque read/convert work
+emits `(stage, 0, None)` before starting and `(stage, rows, rows)` on success;
+`None` means an unknown total, not a percentage. Attribute expansion starts
+at zero with a known total, emits an update every 10,000 rows, and always
+reports completion, including zero rows. No attributes stage when expansion
+is disabled. Exceptions (including callback exceptions) propagate immediately;
+no false completion on a failed stage. The lazy helper remains lazy and gains
+no misleading completion callback. The default remains silent and has no UI
+dependency. Document a runnable optional tqdm adapter.
+
+Fix #23 and #44 together: tokenize quoted key/value pairs without splitting
+inside quoted values, retain the complete value after the first whitespace
+separator, remove only the surrounding quote pair, and preserve apostrophes,
+spaces, and semicolons. Share the token pattern between the direct attribute
+helper and Polars' optional `attribute_split` column. Expand raw strings directly
+so row updates cover tokenization and expansion together. Preserve missing
+attribute and repeated-key semantics. Stop default quote rewriting and
+semicolon removal; retain explicitly requested `fix_quotes_columns` cleanup
+as an opt-in compatibility option. Raw attributes must retain their source
+text. Update writer round-trip tests/docs to reflect supported semicolons.
+Follow GENCODE's quoted-key/value format, with unquoted values and single
+quotes retained as compatibility extensions; embedded unescaped double quotes
+and literal field/line separators remain outside writer round-trip guarantees.
+
+Reject invalid `result_type` before reading input (#76); leave the unrelated
+cleanup in #76 and existing README PR #74 alone. Release as 2.9.0 for the new
+optional API. Test empty filtered results and empty attribute lists; empty
+files continue to raise the existing Polars error without reporting completion.
+
+## Plan
+
+- [x] Read issues, current implementation, tests, and format documentation.
+- [x] Create feature branch; check in with the API and parsing plan.
+- [x] Implement callback contract and parsing fixes with regression tests.
+- [x] Document callback adapter and updated quote/round-trip semantics.
+- [x] Compare old/new parsing performance on a representative large fixture;
+  measure callback overhead and verify results on existing real GTF fixtures.
+- [x] Run `./lint.sh` and `./test.sh` with deprecations as errors; review diff.
+- [ ] Open PR, pass CI, merge, deploy from clean master, verify PyPI artifacts.
+
+## Review
+
+`./lint.sh` passes. `./test.sh -W error::DeprecationWarning` passes all 143
+tests with Polars 1.44.2 and 1.32.0; 1.31.0 passes 142 with the existing
+modern-only test skipped. Current coverage is 96%; attribute parsing is 100%.
+Regression tests cover progress ordering/counts, bounded updates, all result
+types, filtering, raw mode, paths/gzip/text/bytes streams, and cancellation
+both at stage boundaries and during expansion. Empty files keep their existing
+error and do not emit false completion. The executable README tqdm example
+was checked against 995 Ensembl fixture rows.
+
+The regression run also exposed a null-attribute crash, now tracked as #81.
+Missing attribute fields are treated as empty rows during expansion. Existing
+expanded outputs from all five real GTF fixtures match 2.8.1 exactly. Tests
+demonstrate the intended differences for whitespace, quoted semicolons,
+apostrophes, raw attributes, and invalid result types.
+
+Performance check: repeat the 995 data rows in the Ensembl fixture to 250,000
+rows (69,322,957 bytes); run 2.8.1, the new default, and an event-collecting
+callback in fresh Python 3.12 processes with Polars 1.44.2 and four threads.
+Three interleaved runs gave wall-time medians of 6.05s, 4.75s, and 4.28s,
+respectively, but the full 1.34–6.65s range makes speedup or precise overhead
+claims unreliable on this shared machine. All nine runs produced identical
+content checksums; callbacks emitted only 30 events for 250,000 rows. A separate
+in-process attribute-expansion comparison isolates callback bookkeeping from
+file I/O and output conversion; see the PR validation record for its result.
+
+Release completion is recorded in the PR after CI, merge, and deployment so
+the deployment checkout remains clean.
