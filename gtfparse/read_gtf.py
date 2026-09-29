@@ -197,11 +197,11 @@ def parse_gtf_and_expand_attributes(
     filepath_or_buffer, restrict_attribute_columns=None, features=None, *, progress_callback=None
 ):
     """
-    Parse lines into column->values dictionary and then expand
+    Parse a GTF into a Polars DataFrame and then expand
     the 'attribute' column into multiple columns. This expansion happens
     by replacing strings of semi-colon separated key-value values in the
     'attribute' column with one column per distinct key, with a list of
-    values for each row (using None for rows where key didn't occur).
+    values for each row (using empty strings for rows where the key didn't occur).
 
     Parameters
     ----------
@@ -324,7 +324,7 @@ def read_gtf(
     expand_attribute_column : bool
         Replace strings of semi-colon separated key-value values in the
         'attribute' column with one column per distinct key, with a list of
-        values for each row (using None for rows where key didn't occur).
+        values for each row (using empty strings for rows where the key didn't occur).
 
     infer_biotype_column : bool
         Due to the annoying ambiguity of the second GTF column across multiple
@@ -338,7 +338,7 @@ def read_gtf(
 
     column_cast_types : dict, optional
         Dictionary mapping column names to dtypes. Will cast columns to given
-        Polars types.
+        pandas-compatible types.
 
     usecols : list of str or None
         Restrict which columns are loaded to the give set. If None, then

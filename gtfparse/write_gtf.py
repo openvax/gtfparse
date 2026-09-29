@@ -59,8 +59,7 @@ def _attribute_expr(attribute_columns: list[str]) -> polars.Expr:
     empty string (string columns) and cannot distinguish absent from
     present-but-empty, so we treat both null and "" as absent. Values that are
     merely falsy but non-empty -- notably the string "0" -- are written and
-    survive a round trip (this is the regression that the naive ``if value:``
-    check in earlier drafts got wrong).
+    survive a round trip.
     """
     if not attribute_columns:
         return polars.lit("")

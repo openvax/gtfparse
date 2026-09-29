@@ -1,7 +1,4 @@
-"""Regression tests for #56: read_gtf(expand_attribute_column=False)
-used to raise NameError because the else branch referenced `result_df`
-before it had been assigned.
-"""
+"""Reading a GTF without expanding its raw attribute column."""
 
 import pandas as pd
 

@@ -1,4 +1,4 @@
-"""Tests for GENCODE attribute aliases (#63) and version-column casting (#64)."""
+"""Tests for GENCODE attribute aliases and version-column casting."""
 
 import gzip
 import logging
@@ -14,7 +14,7 @@ GENCODE_REAL_GTF_PATH = data_path("gencode.real.head.gtf")
 
 
 # -----------------------------
-# attribute_aliases (#63)
+# Attribute aliases
 # -----------------------------
 
 
@@ -99,7 +99,7 @@ def test_attribute_aliases_with_empty_dict_is_noop():
 
 
 # -----------------------------
-# cast_version_columns (#64)
+# Version-column casting
 # -----------------------------
 
 
@@ -157,7 +157,7 @@ def test_version_columns_missing_when_attribute_absent():
 
 
 # -----------------------------
-# Interaction between #63 and #64
+# Interaction between aliases and version-column casting
 # -----------------------------
 
 
