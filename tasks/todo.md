@@ -137,3 +137,58 @@ file I/O and output conversion; see the PR validation record for its result.
 
 Release completion is recorded in the PR after CI, merge, and deployment so
 the deployment checkout remains clean.
+
+# Packaging and cleanup: #53, #76, #83
+
+## Specification
+
+The 2.9.0 source distribution contains test modules but omits `tests/__init__.py`,
+`tests/data.py`, and the GTF fixtures. Reproduced six collection errors from an
+extracted release tarball. Add a manifest that ships all test Python modules,
+GTF/gzip fixtures, and lint/test entry scripts in the source distribution.
+Keep tests out of the runtime wheel and do not include generated caches or the
+unused 10 MB parquet artifact.
+
+Use SPDX `Apache-2.0` project license metadata, explicitly include `LICENSE`,
+and raise the setuptools build requirement to 77.0.3, which supports PEP 639.
+Remove the deprecated license classifier. Validate wheel and sdist metadata
+and the embedded license text with both the minimum and current build backend.
+
+Add a packaging CI job on Python 3.9/minimum setuptools and Python 3.11/current
+setuptools. Build with the selected backend, check distributions with twine,
+extract the tarball in a temporary directory, and run the shipped `lint.sh` and
+`test.sh` there. The existing runtime test matrix and coverage aggregation stay
+in place. No unit tests for comment-only edits; real archive execution guards
+the packaging bug.
+
+Complete #76's remaining comment/docstring cleanup and remove the two tracked
+Hypothesis cache files; ignore future Hypothesis caches. Preserve lint rules
+and script behavior. Bump 2.9.0 to 2.9.1; leave the existing README PR #74 alone.
+
+## Plan
+
+- [x] Read issues, repository guidance, package contents, and setuptools docs.
+- [x] Reproduce the release-tarball failure and create a feature branch.
+- [x] Check in with the packaging fix and verification plan.
+- [x] Apply packaging metadata, manifest, CI, and comment/cache changes.
+- [x] Run `./lint.sh` and `./test.sh` with deprecations as errors.
+- [x] Verify both build backends, distribution metadata, extracted-archive
+  lint/tests, and wheel contents.
+- [ ] Open PR, pass CI, merge, run `./deploy.sh` from clean master, and verify
+  the published wheel and source archive.
+
+## Review
+
+`./lint.sh` and all 143 tests pass with deprecations treated as errors in the
+checkout and in extracted source archives built by setuptools 77.0.3 and 84.0.0.
+Both backends build wheels from their source archives successfully, and all
+four distributions pass `twine check --strict`. Verified that source archives
+contain the helper, initializer, GTF fixtures, and lint/test scripts, but no
+Hypothesis/bytecode caches or unused parquet file. Wheels contain no tests.
+Wheel and source metadata both declare `License-Expression: Apache-2.0` and
+`License-File: LICENSE`; included license bytes match the repository file.
+Neither build emits the old license-classifier warning. Workflow YAML parses,
+and git ignores Hypothesis caches at both previously tracked paths.
+
+Release verification will be recorded on the PR after deployment, keeping the
+master checkout clean.

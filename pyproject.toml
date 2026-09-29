@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=77.0.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,12 +7,13 @@ name = "gtfparse"
 requires-python = ">=3.9"
 authors = [ {name="Alex Rubinsteyn", email="alex.rubinsteyn@unc.edu" } ]
 description = "Parsing library for extracting data frames of genomic features from GTF files"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Operating System :: OS Independent",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
@@ -71,13 +72,13 @@ select = [
 ]
 ignore = [
     "E501",   # line too long (handled by formatter)
-    "E741",   # ambiguous variable name (pre-existing in codebase)
-    "B006",   # mutable default args (pre-existing; behavior-risky to change)
+    "E741",   # ambiguous variable names
+    "B006",   # mutable default arguments
     "B008",   # do not perform function calls in argument defaults
     "B905",   # zip() without explicit strict
     "SIM108", # use ternary operator instead of if-else
     "UP007",  # use X | Y for type unions (need Python 3.10+)
-    "UP031",  # %-format strings (pre-existing; out of scope for config PR)
+    "UP031",  # %-format strings
 ]
 
 [tool.ruff.lint.per-file-ignores]
