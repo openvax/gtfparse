@@ -7,7 +7,7 @@ import tempfile
 
 from gtfparse import GENCODE_BIOTYPE_ALIASES, INTEGER_VERSION_COLUMNS, read_gtf
 
-from .data import data_path
+from .data import data_path, optional_polars
 
 GENCODE_GTF_PATH = data_path("gencode.head.gtf")
 GENCODE_REAL_GTF_PATH = data_path("gencode.real.head.gtf")
@@ -45,6 +45,7 @@ def test_attribute_aliases_renames_gencode_to_ensembl():
     }
 
 
+@optional_polars
 def test_attribute_aliases_with_polars_result_type():
     df = read_gtf(
         GENCODE_GTF_PATH,
@@ -141,6 +142,7 @@ def test_cast_version_columns_false_keeps_strings():
     assert gene_rows.loc[0, "gene_version"] == "5"
 
 
+@optional_polars
 def test_version_columns_present_in_polars_result():
     df = read_gtf(GENCODE_GTF_PATH, result_type="polars")
     for column_name in INTEGER_VERSION_COLUMNS:

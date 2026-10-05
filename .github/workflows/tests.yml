@@ -40,13 +40,43 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
-        polars-version: ["latest"]
         include:
+          - python-version: "3.9"
+            pandas-version: "minimum"
+            pyarrow-version: "minimum"
+            polars-version: "none"
+          - python-version: "3.10"
+            pandas-version: "latest"
+            pyarrow-version: "latest"
+            polars-version: "none"
           - python-version: "3.11"
+            pandas-version: "latest"
+            pyarrow-version: "latest"
+            polars-version: "none"
+          - python-version: "3.11"
+            pandas-version: "latest"
+            pyarrow-version: "minimum"
+            polars-version: "none"
+          - python-version: "3.11"
+            pandas-version: "2.3.3"
+            pyarrow-version: "latest"
+            polars-version: "none"
+          - python-version: "3.11"
+            pandas-version: "latest"
+            pyarrow-version: "latest"
+            polars-version: "minimum"
+          - python-version: "3.11"
+            pandas-version: "latest"
+            pyarrow-version: "latest"
             polars-version: "1.31.0"
           - python-version: "3.11"
+            pandas-version: "latest"
+            pyarrow-version: "latest"
             polars-version: "1.32.0"
+          - python-version: "3.11"
+            pandas-version: "latest"
+            pyarrow-version: "latest"
+            polars-version: "latest"
 
     steps:
       - name: Checkout repository
@@ -61,9 +91,36 @@ jobs:
           python -m pip install ruff pytest pytest-cov coveralls
           pip install -r requirements.txt
           pip install .
-      - name: Install compatibility Polars version
-        if: matrix.polars-version != 'latest'
-        run: python -m pip install 'polars==${{ matrix.polars-version }}'
+      - name: Install compatibility dependency versions
+        env:
+          PANDAS_VERSION: ${{ matrix.pandas-version }}
+          PYARROW_VERSION: ${{ matrix.pyarrow-version }}
+          POLARS_VERSION: ${{ matrix.polars-version }}
+        run: |
+          python - <<'PY'
+          import os
+          import subprocess
+          import sys
+          from importlib.metadata import requires
+          from packaging.requirements import Requirement
+
+          requirements = [Requirement(text) for text in requires("gtfparse")]
+          pins = []
+          for name in ("pandas", "pyarrow", "polars"):
+              version = os.environ[f"{name.upper()}_VERSION"]
+              if version == "none":
+                  continue
+              if version == "minimum":
+                  requirement = next(r for r in requirements if r.name == name)
+                  version = next(s.version for s in requirement.specifier if s.operator == ">=")
+              pins.append(name if version == "latest" else f"{name}=={version}")
+          subprocess.run([sys.executable, "-m", "pip", "install", *pins], check=True)
+          PY
+      - name: Verify base installation has no Polars
+        if: matrix.polars-version == 'none'
+        run: python -c "from importlib.util import find_spec; assert find_spec('polars') is None"
+      - name: Check installed dependency requirements
+        run: python -m pip check
       - name: Run default linting script
         run: |
           ./lint.sh
@@ -74,7 +131,7 @@ jobs:
         if: matrix.python-version == '3.11'
         uses: coverallsapp/github-action@v2.2.3
         with:
-          flag-name: polars-${{ matrix.polars-version }}
+          flag-name: pandas-${{ matrix.pandas-version }}-arrow-${{ matrix.pyarrow-version }}-polars-${{ matrix.polars-version }}
           parallel: true
 
   coverage:

@@ -8,6 +8,41 @@ gtfparse
 ========
 Parsing tools for GTF (gene transfer format) files.
 
+## Version 3 migration
+
+`read_gtf`, `parse_gtf`, and `parse_gtf_and_expand_attributes` now return pandas
+DataFrames by default. GTF reading uses PyArrow; attribute processing and writing
+use pandas. Polars is no longer a required dependency and is imported only for
+explicit Polars conversion. Ordinary installations need only pandas and PyArrow.
+
+```sh
+pip install gtfparse
+# Optional, for applications that still request Polars frames:
+pip install 'gtfparse[polars]'
+```
+
+```python
+from gtfparse import read_gtf, write_gtf
+
+df = read_gtf("gene_annotations.gtf")  # pandas.DataFrame
+write_gtf(df, "gene_annotations.gtf.gz")
+
+# Requires the optional extra:
+polars_df = read_gtf("gene_annotations.gtf", result_type="polars")
+```
+
+Existing pandas and dictionary callers retain their output shape, fixed-column
+dtypes, attribute handling, filters, converters and progress callbacks. Applications
+that used the previous default Polars output should add `result_type="polars"`
+and install the extra, or use pandas methods. `write_gtf` accepts either frame
+type. The legacy `parse_with_polars_lazy` helper remains an optional adapter:
+it reads the file eagerly and returns a Polars LazyFrame, as before.
+
+Empty or malformed GTF fields now raise `gtfparse.ParsingError`, including wrong
+field counts and invalid numeric fields. Whole comment lines are ignored;
+literal `#` inside attributes is preserved. Text and binary streams stay open
+after parsing, and gzip is detected from its contents.
+
 ## Reporting parsing progress
 
 Pass `progress_callback(stage, completed, total)` to `read_gtf` to connect
@@ -17,7 +52,7 @@ does not display a progress bar or add a progress-library dependency.
 
 | Stage | Reports |
 | --- | --- |
-| `read` | `(0, None)` before Polars loads/filters the file; `(rows, rows)` after it succeeds |
+| `read` | `(0, None)` before loading/filtering the file; `(rows, rows)` after it succeeds |
 | `attributes` | `(0, rows)`, then every 10,000 rows, then `(rows, rows)` |
 | `convert` | `(0, None)` before output conversion/transforms; `(rows, rows)` after success |
 
@@ -26,8 +61,7 @@ percentages. `None` means the total is unknown: loading and conversion expose
 only stage boundaries, so use an indeterminate indicator during those steps.
 Attribute expansion is omitted when `expand_attribute_column=False`. A stage
 that fails does not emit completion. An empty filtered result is supported;
-its attributes stage emits a single `(0, 0)` event. Empty input files retain
-the existing Polars `NoDataError` behavior.
+its attributes stage emits a single `(0, 0)` event. Empty input files raise `gtfparse.ParsingError`.
 
 For example, with the optional `tqdm` package installed:
 

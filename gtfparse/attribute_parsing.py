@@ -18,7 +18,7 @@ from sys import intern
 logger = logging.getLogger(__name__)
 
 # Quoted values may contain semicolons. Keep this compatible with both Python's
-# re module and Polars' regex engine so the low-level split column agrees with
+# re module so the low-level split column agrees with
 # attribute expansion. Unquoted values and single quotes are accepted as well.
 ATTRIBUTE_PATTERN = r"""[^\s;]+[ \t]+(?:"[^"]*"|'[^']*'|[^;]+)"""
 _ATTRIBUTE_PAIRS = re.compile(ATTRIBUTE_PATTERN)

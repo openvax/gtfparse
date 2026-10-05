@@ -4,7 +4,7 @@ import pandas as pd
 
 from gtfparse import read_gtf
 
-from .data import data_path
+from .data import data_path, optional_polars
 
 GTF_PATH = data_path("ensembl_grch37.head.gtf")
 
@@ -27,6 +27,7 @@ def test_expand_attribute_column_false_returns_raw_attribute_pandas():
     assert any("gene_id" in val for val in df["attribute"].astype(str))
 
 
+@optional_polars
 def test_expand_attribute_column_false_returns_polars():
     df = read_gtf(GTF_PATH, expand_attribute_column=False, result_type="polars")
     # polars dataframe — has columns attribute but no per-key columns

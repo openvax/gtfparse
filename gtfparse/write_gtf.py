@@ -12,14 +12,16 @@
 
 import gzip
 import logging
+import sys
 from collections.abc import Iterable
+from itertools import repeat
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Union
 
-import polars
+import pandas as pd
 
 if TYPE_CHECKING:
-    import pandas
+    import polars
 
 logger = logging.getLogger(__name__)
 
@@ -45,69 +47,32 @@ MISSING_VALUE = "."
 RAW_ATTRIBUTE_COLUMN = "attribute"
 
 
-def _attribute_expr(attribute_columns: list[str]) -> polars.Expr:
-    """
-    Build a polars expression that renders the GTF attribute field for each row
-    from a set of expanded attribute columns.
-
-    Each column ``key`` becomes ``key "value";`` and the per-row pairs are
-    joined with a single space, matching the format emitted by Ensembl/GENCODE
-    and parsed by read_gtf.
-
-    A pair is omitted for any row where the value is "absent". read_gtf marks an
-    absent key with null (numeric columns, e.g. the ``*_version`` fields) or the
-    empty string (string columns) and cannot distinguish absent from
-    present-but-empty, so we treat both null and "" as absent. Values that are
-    merely falsy but non-empty -- notably the string "0" -- are written and
-    survive a round trip.
-    """
-    if not attribute_columns:
-        return polars.lit("")
-    pairs = []
-    for name in attribute_columns:
-        value = polars.col(name).cast(polars.String)
-        pairs.append(
-            polars.when(value.is_null() | (value == ""))
-            .then(None)
-            .otherwise(polars.format('{} "{}";', polars.lit(name), value))
-        )
-    # ignore_nulls drops absent keys; fill_null covers the all-absent row so the
-    # surrounding line expression never collapses to null.
-    return polars.concat_str(pairs, separator=" ", ignore_nulls=True).fill_null("")
-
-
-def _line_series(df: polars.DataFrame) -> polars.Series:
-    """
-    Turn a DataFrame into a Series of fully-formatted GTF lines (without
-    trailing newlines), building the whole thing with vectorized polars
-    expressions rather than per-row Python.
-    """
-    columns = df.columns
-    missing = [name for name in GTF_FIXED_COLUMNS if name not in columns]
-    if missing:
-        raise ValueError("DataFrame is missing required GTF column(s): %s" % ", ".join(missing))
-
-    # Fixed columns are always written in canonical order; nulls become '.'.
-    # Cast before fill_null so numeric columns accept the string sentinel.
-    fixed = [
-        polars.col(name).cast(polars.String).fill_null(MISSING_VALUE) for name in GTF_FIXED_COLUMNS
-    ]
-
-    if RAW_ATTRIBUTE_COLUMN in columns:
-        # Unexpanded read: the attribute column is already a formatted string.
-        attribute = polars.col(RAW_ATTRIBUTE_COLUMN).cast(polars.String).fill_null("")
-    else:
-        attribute_columns = [name for name in columns if name not in GTF_FIXED_COLUMNS]
-        attribute = _attribute_expr(attribute_columns)
-
-    # Always keep the 9th (attribute) field, even when empty, so every line has
-    # the nine tab-separated columns read_gtf expects.
-    line = polars.concat_str([*fixed, attribute], separator="\t")
-    return df.select(line.alias("_gtf_line")).get_column("_gtf_line")
+def _lines(df):
+    """Format bounded batches, preserving each column's string representation."""
+    attribute_columns = [name for name in df.columns if name not in GTF_FIXED_COLUMNS]
+    for start in range(0, len(df), 10_000):
+        batch = df.iloc[start : start + 10_000]
+        fixed = batch[GTF_FIXED_COLUMNS].astype("string").fillna(MISSING_VALUE)
+        if RAW_ATTRIBUTE_COLUMN in df.columns:
+            attributes = batch[RAW_ATTRIBUTE_COLUMN].astype("string").fillna("")
+        elif not attribute_columns:
+            attributes = repeat("", len(batch))
+        else:
+            expanded = batch[attribute_columns].astype("string").fillna("")
+            attributes = (
+                " ".join(
+                    '%s "%s";' % (name, value)
+                    for name, value in zip(attribute_columns, row)
+                    if value != ""
+                )
+                for row in expanded.itertuples(index=False, name=None)
+            )
+        for row, attribute in zip(fixed.itertuples(index=False, name=None), attributes):
+            yield "\t".join([*row, attribute]) + "\n"
 
 
 def write_gtf(
-    df: Union[polars.DataFrame, "pandas.DataFrame"],
+    df: Union[pd.DataFrame, "polars.DataFrame"],
     path: Union[str, Path],
     header_lines: Optional[Iterable[str]] = None,
 ) -> None:
@@ -121,7 +86,7 @@ def write_gtf(
 
     Parameters
     ----------
-    df : polars.DataFrame or pandas.DataFrame
+    df : pandas.DataFrame or polars.DataFrame
         Feature rows to write. Must contain the fixed GTF columns
         (seqname, source, feature, start, end, score, strand, frame).
         Any additional column is written as an attribute, except a column
@@ -146,19 +111,20 @@ def write_gtf(
     quotes, tabs, or newlines; values containing those characters are outside
     its round-trip guarantees. Empty and missing attributes are both omitted.
     """
-    # Accept a pandas DataFrame too, since read_gtf(result_type="pandas")
-    # returns one; convert to polars so the formatting below is uniform.
-    if not isinstance(df, polars.DataFrame):
-        df = polars.from_pandas(df)
-
-    lines = _line_series(df)
+    if not isinstance(df, pd.DataFrame):
+        polars = sys.modules.get("polars")
+        if polars is None or not isinstance(df, polars.DataFrame):
+            raise TypeError("df must be a pandas or Polars DataFrame")
+        df = df.to_pandas()
+    missing = [name for name in GTF_FIXED_COLUMNS if name not in df.columns]
+    if missing:
+        raise ValueError("DataFrame is missing required GTF column(s): %s" % ", ".join(missing))
 
     open_file = gzip.open if str(path).lower().endswith(".gz") else open
     with open_file(path, "wt", encoding="utf-8", newline="\n") as output_file:
         if header_lines is not None:
             for header_line in header_lines:
                 output_file.write("%s\n" % header_line)
-        for line in lines:
-            output_file.write("%s\n" % line)
+        output_file.writelines(_lines(df))
 
-    logger.info("Wrote %d GTF rows to %s", lines.len(), path)
+    logger.info("Wrote %d GTF rows to %s", len(df), path)

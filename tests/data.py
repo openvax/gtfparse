@@ -1,4 +1,9 @@
 import os
+from importlib.util import find_spec
+
+import pytest
+
+optional_polars = pytest.mark.skipif(find_spec("polars") is None, reason="Requires polars extra")
 
 
 def data_path(name):

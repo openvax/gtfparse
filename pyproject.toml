@@ -26,6 +26,7 @@ readme = "README.md"
 dynamic = ["version", "dependencies"]
 
 [project.optional-dependencies]
+polars = ["polars>=0.20.31"]
 dev = [
     "pytest",
     "pytest-cov",

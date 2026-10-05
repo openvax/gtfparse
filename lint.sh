@@ -2,7 +2,7 @@
 
 set -e
 
-SOURCES="gtfparse tests"
+SOURCES="gtfparse tests benchmarks"
 
 echo "Running ruff check..."
 ruff check $SOURCES
