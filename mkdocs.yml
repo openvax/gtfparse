@@ -1,0 +1,55 @@
+site_name: gtfparse
+site_description: Read and write GTF annotation tables
+site_url: https://openvax.github.io/gtfparse/
+repo_url: https://github.com/openvax/gtfparse
+repo_name: openvax/gtfparse
+edit_uri: edit/master/docs/
+strict: true
+theme:
+  name: material
+  font: false
+  palette:
+    primary: white
+    accent: blue
+  features:
+  - navigation.indexes
+  - navigation.expand
+  - content.code.copy
+validation:
+  links:
+    not_found: warn
+    unrecognized_links: warn
+    anchors: warn
+plugins:
+- search
+- mkdocstrings:
+    handlers:
+      python:
+        paths:
+        - .
+        options:
+          docstring_style: numpy
+          show_root_heading: true
+          show_root_full_path: false
+          show_source: false
+          separate_signature: true
+          heading_level: 2
+          docstring_section_style: list
+          members_order: source
+markdown_extensions:
+- tables
+- toc:
+    permalink: true
+- pymdownx.superfences
+extra_css:
+- stylesheets/docs.css
+nav:
+- Home: index.md
+- Common tasks:
+  - Filter and write annotations: guides/annotations.md
+  - Report parsing progress: guides/progress.md
+- Reference:
+  - API reference: reference.md
+  - Version 3 migration: guides/migration.md
+- Contributing:
+  - Documentation style: dev/documentation-style.md
