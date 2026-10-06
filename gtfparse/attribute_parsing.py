@@ -55,8 +55,11 @@ def expand_attribute_strings(
         the start, every 10,000 rows, and at completion. An empty input emits
         one ``("attributes", 0, 0)`` event. Callback exceptions propagate.
 
-    Returns OrderedDict of column->value list mappings, in the order they
-    appeared in the attribute strings.
+    Returns
+    -------
+    collections.OrderedDict
+        Column-to-value-list mappings, in the order the columns appeared in
+        the attribute strings.
     """
     n = len(attribute_strings)
 
