@@ -1,8 +1,8 @@
 import gzip
 
-import polars
+import pandas as pd
 import pytest
-from polars.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 
 from gtfparse import read_gtf, write_gtf
 
@@ -37,7 +37,7 @@ def _minimal_df(**extra_columns):
         "frame": [None],
     }
     row.update(extra_columns)
-    return polars.DataFrame(row)
+    return pd.DataFrame(row)
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +54,7 @@ def test_write_read_recovers_parsed_frame(fixture, expand, tmp_path):
     out_path = tmp_path / "out.gtf"
     write_gtf(original, out_path)
     recovered = read_gtf(str(out_path), expand_attribute_column=expand)
-    assert_frame_equal(original, recovered, categorical_as_str=True)
+    assert_frame_equal(original, recovered)
 
 
 @pytest.mark.parametrize("fixture", FIXTURES)
@@ -85,7 +85,7 @@ def test_read_write_recovers_dataframe(tmp_path):
     # writing the recovered frame is itself a fixed point
     again = tmp_path / "df2.gtf"
     write_gtf(recovered, again)
-    assert_frame_equal(recovered, read_gtf(str(again)), categorical_as_str=True)
+    assert_frame_equal(recovered, read_gtf(str(again)))
 
 
 def test_round_trip_from_pandas(tmp_path):
@@ -94,7 +94,7 @@ def test_round_trip_from_pandas(tmp_path):
     pandas_df = read_gtf(data_path("ensembl_grch37.head.gtf"), result_type="pandas")
     out_path = tmp_path / "from_pandas.gtf"
     write_gtf(pandas_df, out_path)
-    assert_frame_equal(polars_df, read_gtf(str(out_path)), categorical_as_str=True)
+    assert_frame_equal(polars_df, read_gtf(str(out_path)))
 
 
 def test_gzip_output_round_trips(tmp_path):
@@ -106,7 +106,7 @@ def test_gzip_output_round_trips(tmp_path):
     assert out_path.read_bytes()[:2] == b"\x1f\x8b"
     with gzip.open(out_path, "rt") as handle:
         assert "\t" in handle.readline()
-    assert_frame_equal(df, read_gtf(str(out_path)), categorical_as_str=True)
+    assert_frame_equal(df, read_gtf(str(out_path)))
 
 
 def test_gzip_detection_is_case_insensitive(tmp_path):
@@ -119,7 +119,7 @@ def test_gzip_detection_is_case_insensitive(tmp_path):
 
 def test_empty_dataframe_writes_no_rows(tmp_path):
     """A zero-row DataFrame produces a file with only its header lines."""
-    empty = read_gtf(data_path("refseq.ucsc.small.gtf")).clear()
+    empty = read_gtf(data_path("refseq.ucsc.small.gtf")).iloc[:0]
     out_path = tmp_path / "empty.gtf"
     write_gtf(empty, out_path, header_lines=["##empty"])
     assert out_path.read_text() == "##empty\n"
@@ -128,7 +128,7 @@ def test_empty_dataframe_writes_no_rows(tmp_path):
 def test_fixed_columns_only(tmp_path):
     """A DataFrame with only the fixed columns writes a valid 9-field line
     (empty attribute field) and reads back."""
-    fixed_only = polars.DataFrame(
+    fixed_only = pd.DataFrame(
         {
             "seqname": ["chr1"],
             "source": ["test"],
@@ -209,10 +209,10 @@ def test_header_lines_are_written(tmp_path):
     assert lines[0] == "##description: test"
     assert lines[1] == "##provider: gtfparse"
     # comment lines are ignored by read_gtf, so the data still round-trips
-    assert_frame_equal(df, read_gtf(str(out_path)), categorical_as_str=True)
+    assert_frame_equal(df, read_gtf(str(out_path)))
 
 
 def test_missing_required_column_raises(tmp_path):
-    df = polars.DataFrame({"seqname": ["chr1"], "gene_id": ["G1"]})
+    df = pd.DataFrame({"seqname": ["chr1"], "gene_id": ["G1"]})
     with pytest.raises(ValueError, match="missing required GTF column"):
         write_gtf(df, tmp_path / "bad.gtf")

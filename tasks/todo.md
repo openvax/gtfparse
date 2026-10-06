@@ -192,3 +192,190 @@ and git ignores Hypothesis caches at both previously tracked paths.
 
 Release verification will be recorded on the PR after deployment, keeping the
 master checkout clean.
+
+# Polars compatibility and measured backend evaluation: #85 and #69
+
+## Specification
+
+Close #19 as unreproduced with the normalized-example evidence and invite a
+fresh reproducer. Fix the supported Polars contract: run the entire suite at
+the candidate 0.20.31 API boundary, determine the actual minimum required by
+reading and writing, update requirements, and exercise the declared minimum
+in CI alongside latest and categorical-transition versions. Investigate and
+file any additional current Polars failures encountered; fix reproducible
+gtfparse defects within this scope. Preserve public output types, categorical
+behavior, callbacks, and exceptions unless a separately documented defect
+requires a change. Bump the release version for the PR.
+
+Evaluate #69 with reproducible fresh-process benchmarks on real Ensembl and
+GENCODE GTF data, both plain and gzip where practical. Compare current Polars
+with pandas C and direct PyArrow CSV prototypes using equivalent dtypes,
+attribute expansion, filtering, and output. Measure stage wall/CPU time and
+peak RSS, validate output equivalence outside timed work, and report versions,
+input hashes/sizes, thread counts, repeated-run ranges, and limitations.
+Separate parser time from Python attribute expansion and frame conversions;
+do not infer end-to-end gains from CSV microbenchmarks. Include pandas 2.x and
+3.x if available. Avoid a speculative backend migration: use measured results
+to decide whether a migration is justified and document remaining compatibility
+work if the prototype is not ready to replace the production parser.
+
+## Plan
+
+- [x] Read repository guidance, open Polars issues, implementation, and CI.
+- [x] Create branch and check in with compatibility/benchmark scope.
+- [x] Close #19 with an explicit unreproduced disposition.
+- [x] Validate the minimum across the full suite, fix confirmed failures, and
+  update dependency metadata/CI/version.
+- [ ] Build benchmark harness, validate prototypes, run repeated realistic
+  comparisons, and investigate the measured bottleneck.
+- [ ] Record findings on #69, regression evidence on #85, and benchmark results.
+- [ ] Run ./lint.sh and ./test.sh, verify packaging, and review final diff.
+- [ ] Open PR, pass CI, merge, deploy with ./deploy.sh from clean master, and
+  verify the published package.
+- [ ] Review remaining gtfparse issues for the next useful independent work.
+
+## Review
+
+Pending validation and measurements.
+
+The full suite passes at Polars 0.20.31 (142 passed, one modern-only skip).
+Dependency and CI minimum now agree. The Arrow-extension benchmark prototype
+needs an object bridge for nullable categoricals: pandas 2.3.3's direct cast
+raises ArrowInvalid on StringTie's missing strands. This is a prototype
+compatibility cost, not a failure in the production Polars reader. Stop the
+initial timing sweep, validate that bridge on all fixtures, and restart the
+sweep from scratch so all measurements use identical prototype code.
+
+All 80 fixture/backend/filter/version comparisons now pass, including pandas
+2.3.3 and 3.0.6. The first 250,000 real rows from each source were tested plain
+and gzip, with repeated fresh-process timings and matching content hashes.
+Larger runs cover one million Ensembl rows and all 4,119,244 GENCODE rows.
+
+Also verified and closed historical Bioconda #43: the live recipe no longer
+has its reported Polars <0.17 pin. The recipe still trails the upstream release;
+the closure comment explicitly separates that from #85's current minimum fix.
+Filed openvax/pyensembl#423 for its confirmed default-Polars output followed by
+an immediate pandas conversion. No downstream source changes are included.
+
+# Remove the required Polars dependency: #69 and #85
+
+## Revised specification
+
+The user asked to find a way to remove Polars. Supersede the earlier
+compatibility-only release plan with a measured reader/writer migration.
+Use PyArrow's typed TSV reader, with fresh-process measurements and the full
+API audit to verify suitability. Keep attribute expansion, aliases, version casts, biotype
+inference, column selection/converters, missing-value semantics, and progress
+callbacks. Validate exactly nine fields without truncating literal # in quoted
+attributes; ignore whole comment lines anywhere in paths, gzip and text/byte
+streams. Keep caller-owned streams open and support non-seekable streams.
+Malformed/empty inputs raise the package's ParsingError, with no false progress
+completion. Preserve categorical fixed columns, float32 scores, uint32 frames,
+row/column ordering and dict shape. Replace the Polars writer with pandas and
+bounded row batches; preserve gzip, headers, nulls and raw attributes.
+
+Make ordinary imports, reads and writes work with pandas/PyArrow and no Polars.
+Keep explicit result_type='polars' and parse_with_polars_lazy as optional
+conversion adapters, loaded only when requested, with a useful installation
+error. Put Polars in the 'polars' extra; PyArrow remains a core dependency.
+The proposed pandas default and lower-level pandas return types warrant 3.0.0;
+the user confirmed pandas by default with optional Polars output.
+Document the migration explicitly, including the new package error for empty
+input. Retain the legacy lazy helper as an eager-read/lazy-conversion adapter.
+
+Compare old production, the complete new production reader, and the prototypes
+on real Ensembl/GENCODE subsets, plain and gzip, in fresh sequential processes;
+validate all content outside timing, record repeated ranges/RSS/versions and
+input hashes. Do not claim speedups from noisy single measurements. Run the
+full suite in an environment without Polars, plus optional-extra
+compatibility jobs and pandas minimum/current coverage. Verify both wheel and
+source dependencies and run shipped lint/test scripts from the source archive.
+File any newly discovered production defects as issues and link the PR.
+Ship via PR and deploy.sh from clean master, then verify PyPI and review the
+remaining issues without automatically starting unrelated work.
+
+## Plan
+
+- [x] Read the prior plan, source, public APIs and benchmark prototypes.
+- [x] Create a new feature branch, preserve a baseline, and check in with scope.
+- [x] Measure candidates and validate the default/output migration preference.
+- [x] Replace reader/writer internals; make Polars an optional adapter.
+- [x] Add API/stream/error/round-trip and no-Polars regression coverage.
+- [x] Update dependency metadata, CI, migration docs and version.
+- [x] Record repeatable benchmark evidence and review the implementation.
+- [x] Run ./lint.sh and ./test.sh; validate minimal/optional environments and archives.
+- [ ] Open PR, pass checks, merge, deploy and verify the released distributions.
+- [ ] Review open issues for the next foundational candidate.
+
+## Review
+
+CI recovery replan: hosted runner assignment failures interrupted the first
+workflow attempt. A rerun then reproduced Coveralls rejecting uploads because
+the original attempt had already finalized the same GitHub run ID. File this
+workflow defect, give every attempt a distinct Coveralls service number shared
+by uploads and finalization, rerun the required scripts and validate both the
+new workflow and a full rerun before merging. Preserve coverage aggregation. Tracked as #90; use the documented
+COVERALLS_SERVICE_NUMBER override at workflow scope.
+
+Version 3 removes mandatory Polars imports and dependencies, uses typed Arrow
+reading and pandas processing/writing, and preserves explicit Polars adapters.
+The user confirmed the pandas default and optional Polars policy. Fixed-column
+and expanded results match the 2.9.1 baseline in 100 API comparisons across
+pandas 2.3.3/3.0.6; 60 prototype comparisons also pass. Core regressions cover
+stream ownership/short reads/gzip/BOM/comments, field validation, exact int64s,
+filtered nullable coordinates, quote cleanup order, callbacks/cancellation,
+nullable attributes and writer batches.
+
+./lint.sh passes. ./test.sh with deprecations as errors passes 172 tests on
+pandas 2.3.3/Polars 1.44.2 (97% coverage). Base environments without Polars pass
+158 tests with 10 optional skips on pandas 3.0.6/PyArrow 25.0.1, pandas 3.0.6/
+PyArrow 18.0.0/Python 3.11, and the corrected pandas 2.2.2/PyArrow 18.0.0/
+NumPy 2.0.2/Python 3.9 minimum (96% coverage). Optional Polars 0.20.31 passes
+171 tests with one modern-only skip; its separate categorical joins emit the
+native remapping warning, without changing process-wide string-cache state.
+The pandas/NumPy ABI minimum problem is tracked and fixed as #87.
+
+All 122 retained benchmark records have matching content hashes per input.
+Three-run subset medians show 1.10–1.20x complete-load time and about 1.03–1.10x
+peak RSS. The full 4,119,244-row GENCODE scaling pair matches all columns:
+2.9.1 takes 38.88s / 6189 MiB, while 3.0 takes 45.40s / 5348 MiB. This single
+pair demonstrates full-file correctness/scaling, not stable throughput.
+Benchmark method, input hashes, medians/ranges and limitations are recorded
+in benchmarks/README.md and benchmarks/results.json. In particular, read-stage
+callbacks do different conversion work, so do not assert #69's raw-CSV 3x
+criterion from them; the measured complete load meets its 1.5x threshold.
+Packaging and release verification follow below and in the PR release record.
+
+Backend decision: the C prototype's first Ensembl run took 3.95s against
+2.47s for the baseline, while Arrow took 2.91s (identical content checksum).
+Use Arrow for the fixed-column reader and pandas for all subsequent operations;
+keep PyArrow required, move only Polars to an extra. The initial C implementation
+was an evaluation and is superseded before final benchmarking.
+
+Full API comparisons passed: 50 baseline/new pandas comparisons and 30
+prototype comparisons on each of pandas 2.3.3 and 3.0.6 (160 comparisons).
+Regression coverage also confirms filtering before pandas conversion preserves
+integer coordinate dtypes when discarded rows contain null coordinates. Optional
+quote cleanup still precedes filtering when requested. Avoid copying an all-valid
+seqname column mask; filter missing seqnames only when present. Restart the final
+production comparison sweep after these changes; keep the prototype records,
+whose implementation is unchanged.
+
+Dependency-floor replan: the pandas 2.1.0 minimum only imports with NumPy 1.x.
+Reproduced its ABI import failure with NumPy 2.0.2 on Python 3.9.22. Raise the
+pandas floor to 2.2.2, remove the CI-only NumPy<2 workaround, file the discovered
+metadata problem, and validate the new minimum with NumPy 2 before shipping.
+
+Archive verification found test.sh probes xdist with one Python but executes
+a different pytest binary from PATH. Reproduced shared-venv Python/xdist versus
+Homebrew pytest without xdist, yielding unrecognized -n. Use python -m pytest
+for the log/exec path, file the defect, rebuild and execute the shipped scripts.
+
+Packaging: wheel and source metadata agree on pandas>=2.2.2, PyArrow>=18.0.0
+and Polars>=0.20.31 only behind the polars extra. Both pass strict twine checks.
+The wheel excludes tests/benchmarks; the sdist contains all source/test Python
+files, fixtures, runner scripts and benchmark evidence. Installing the wheel
+into a fresh base environment loads from site-packages, installs no Polars,
+and round-trips all five real fixtures. Archive runner mismatch fixed as #88;
+shipped lint/tests pass with python -m pytest. Release status and published
+artifact verification will be recorded on the PR to keep clean master clean.

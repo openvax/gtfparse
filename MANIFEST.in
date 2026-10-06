@@ -1,3 +1,4 @@
 include lint.sh test.sh
 recursive-include tests *.py
 recursive-include tests/data *.gtf *.gtf.gz
+recursive-include benchmarks *.py *.md *.json

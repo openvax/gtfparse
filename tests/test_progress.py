@@ -2,11 +2,10 @@ import gzip
 from io import BytesIO, StringIO
 
 import pandas as pd
-import polars
 import pytest
-from polars.testing import assert_frame_equal
 
 from gtfparse import (
+    ParsingError,
     expand_attribute_strings,
     parse_gtf,
     parse_gtf_and_expand_attributes,
@@ -14,13 +13,17 @@ from gtfparse import (
     read_gtf,
 )
 
+from .data import optional_polars
+
 GTF = (
     '1\ttest\tgene\t1\t100\t.\t+\t.\tgene_id "G1"; gene_version "2";\n'
     '1\ttest\texon\t1\t50\t.\t+\t0\tgene_id "G1"; tag "basic";\n'
 )
 
 
-@pytest.mark.parametrize("result_type", ["polars", "pandas", "dict"])
+@pytest.mark.parametrize(
+    "result_type", [pytest.param("polars", marks=optional_polars), "pandas", "dict"]
+)
 @pytest.mark.parametrize("expand", [True, False])
 @pytest.mark.parametrize("features,rows", [(None, 2), ({"gene"}, 1), ({"CDS"}, 0)])
 def test_read_progress_preserves_results(result_type, expand, features, rows, capsys):
@@ -37,6 +40,8 @@ def test_read_progress_preserves_results(result_type, expand, features, rows, ca
         StringIO(GTF), progress_callback=lambda *event: events.append(event), **kwargs
     )
     if result_type == "polars":
+        from polars.testing import assert_frame_equal
+
         assert_frame_equal(actual, expected)
     elif result_type == "pandas":
         pd.testing.assert_frame_equal(actual, expected)
@@ -66,7 +71,7 @@ def test_progress_with_supported_inputs(kind, tmp_path):
         source = StringIO(GTF)
     events = []
     result = read_gtf(source, progress_callback=lambda *event: events.append(event))
-    assert result.height == 2
+    assert len(result) == 2
     assert events[-1] == ("convert", 2, 2)
 
 
@@ -145,9 +150,9 @@ def test_callback_can_cancel_during_attribute_expansion():
     assert not any(event[0] == "convert" for event in events)
 
 
-def test_empty_file_keeps_existing_error_without_completion():
+def test_empty_file_raises_parsing_error_without_completion():
     events = []
-    with pytest.raises(polars.exceptions.NoDataError):
+    with pytest.raises(ParsingError):
         read_gtf(StringIO(""), progress_callback=lambda *event: events.append(event))
     assert events == [("read", 0, None)]
 

@@ -1,10 +1,11 @@
 from io import StringIO
 
-import polars
 import pytest
 
-from gtfparse import read_gtf
+from gtfparse import read_gtf, write_gtf
 from gtfparse.read_gtf import parse_with_polars_lazy
+
+polars = pytest.importorskip("polars")
 
 GTF_TEXT = (
     '1\tensembl\tgene\t10\t20\t.\t+\t.\tgene_id "g1";\n'
@@ -48,4 +49,14 @@ def test_modern_reads_do_not_toggle_global_string_cache(monkeypatch):
 
     monkeypatch.setattr(polars, "enable_string_cache", fail_on_cache_toggle)
     monkeypatch.setattr(polars, "disable_string_cache", fail_on_cache_toggle)
-    assert read_gtf(StringIO(GTF_TEXT)).height == 2
+    assert read_gtf(StringIO(GTF_TEXT), result_type="polars").height == 2
+
+
+def test_optional_polars_writer_round_trip(tmp_path):
+    original = read_gtf(StringIO(GTF_TEXT), result_type="polars")
+    path = tmp_path / "out.gtf.gz"
+    write_gtf(original, path)
+    recovered = read_gtf(path, result_type="polars")
+    from polars.testing import assert_frame_equal
+
+    assert_frame_equal(original, recovered, categorical_as_str=True)

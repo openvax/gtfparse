@@ -33,7 +33,7 @@ def test_parse_gtf_lines_with_expand_attributes():
     assert list(df["start"]) == [11869, 11869]
     assert list(df["end"]) == [14409, 14409]
 
-    assert df["score"].is_null().all(), "Unexpected scores: %s" % (df["score"],)
+    assert df["score"].isna().all(), "Unexpected scores: %s" % (df["score"],)
     assert list(df["gene_id"]) == ["ENSG00000223972", "ENSG00000223972"]
     assert list(df["transcript_id"]) == ["", "ENST00000456328"]
 
@@ -47,7 +47,7 @@ def test_parse_gtf_lines_without_expand_attributes():
     # convert to list for comparison since numerical columns may be NumPy arrays
     assert list(df["start"]) == [11869, 11869]
     assert list(df["end"]) == [14409, 14409]
-    assert df["score"].is_null().all(), "Unexpected scores: %s" % (df["score"],)
+    assert df["score"].isna().all(), "Unexpected scores: %s" % (df["score"],)
     assert len(df["attribute"]) == 2
 
 
