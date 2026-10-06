@@ -4,7 +4,7 @@ The 3.0.0 migration uses PyArrow for fixed-column parsing and pandas for attribu
 processing and writing. Polars is an optional output adapter. This directory
 contains the measurement harness and the evidence for that decision.
 
-The follow-up [3.0.1 optimization report](optimization.md) compares the optimized
+The follow-up [3.0.2 optimization report](optimization.md) compares the optimized
 complete reader with both the 2.9.1 Polars and 3.0.0 Arrow/pandas releases.
 
 ## Reproduction

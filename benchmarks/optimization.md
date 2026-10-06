@@ -1,8 +1,13 @@
-# Complete-load optimization in 3.0.1
+# Complete-load optimization in 3.0.2
 
-Version 3.0.1 retains the pandas default and optional Polars output introduced
+Version 3.0.2 retains the pandas default and optional Polars output introduced
 in 3.0.0. It improves the shared Python attribute parser and the construction
 of expanded pandas columns while keeping the supported reader behavior.
+
+The benchmark candidate was labeled 3.0.1 when measured. The concurrent
+documentation PR targets that version, so this independent optimization
+ships as 3.0.2. Raw records retain their measured version labels;
+result tables refer to the release containing that implementation.
 
 ## Changes
 
@@ -79,7 +84,7 @@ pandas versions. Times and memory are fresh measurements from this sweep;
 compare readers within this table rather than mixing earlier timings from a
 shared workstation.
 
-| pandas | Input (250k rows) | 2.9.1 Polars s | 3.0.0 Arrow s | 3.0.1 s | Polars MiB | 3.0.0 MiB | 3.0.1 MiB |
+| pandas | Input (250k rows) | 2.9.1 Polars s | 3.0.0 Arrow s | 3.0.2 s | Polars MiB | 3.0.0 MiB | 3.0.2 MiB |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | 2.3.3 | ensembl-250k.gtf | 2.57 | 2.91 | 2.29 | 560 | 617 | 583 |
 | 2.3.3 | ensembl-250k.gtf.gz | 2.86 | 4.58 | 2.36 | 561 | 620 | 584 |
@@ -110,7 +115,7 @@ one fresh process per reader. All six complete loads match content and column
 order. These single observations demonstrate scaling and correctness, and do
 not establish repeated full-file throughput.
 
-| Full gzip input | Rows | Polars s | 3.0.0 s | 3.0.1 s | Polars MiB | 3.0.0 MiB | 3.0.1 MiB |
+| Full gzip input | Rows | Polars s | 3.0.0 s | 3.0.2 s | Polars MiB | 3.0.0 MiB | 3.0.2 MiB |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | Ensembl GRCh38.114 | 4,116,048 | 47.11 | 67.63 | 36.86 | 6504 | 7199 | 3639 |
 | GENCODE v48 primary | 4,119,244 | 43.74 | 52.35 | 29.88 | 7091 | 6560 | 3698 |

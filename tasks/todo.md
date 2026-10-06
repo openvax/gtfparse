@@ -386,7 +386,7 @@ artifact verification will be recorded on the PR to keep clean master clean.
 
 The user requested a PR to improve the pandas/Arrow implementation and attempt
 repeatable complete-load performance better than the old Polars implementation,
-without narrowing supported inputs or API behavior. Version this as 3.0.1.
+without narrowing supported inputs or API behavior. Version this as 3.0.2.
 
 Preserve all expanded/raw GTF semantics, fixed numeric/categorical and inferred
 string dtypes, arbitrary/repeated/quoted attributes, column collisions/order,
@@ -477,11 +477,15 @@ MiB and 3.0.0 52.35 s/6560 MiB. These are single observations per reader on the
 shared workstation, distinct from the repeated subset medians. Final selective
 exon/five-column and optional Polars-output checks also match all three releases.
 84 final records and separately labeled development evidence are retained in
-benchmarks/optimization-results.json. Version is bumped to 3.0.1.
+benchmarks/optimization-results.json. Version is bumped to 3.0.2.
 
 Packaging review: wheel and source distribution build successfully, have identical
-3.0.1 dependency metadata, and pass strict Twine checks. The wheel excludes tests
+3.0.2 dependency metadata, and pass strict Twine checks. The wheel excludes tests
 and benchmarks; the source archive includes the new regression tests, runner and
 retained evidence. Its shipped ./lint.sh and ./test.sh pass (199 plus 10 optional
 skips, 96% coverage). Production code, test oracle and benchmark method reviewed;
 release/checklist completion will be recorded on the PR after merge and PyPI.
+
+Release sequencing: documentation PR #93 targets 3.0.1. Keep this PR
+independent of that unmerged work and ship 3.0.2. Benchmark records retain measured candidate version 3.0.1; runtime
+parsing and assembly behavior is unchanged by version numbering.

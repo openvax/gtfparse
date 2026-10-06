@@ -1,10 +1,10 @@
 {
-  "description": "Final 3.0.1 captured-pair parser and 250000-row batched Arrow attribute assembly; complete production pipelines.",
+  "description": "Captured-pair parser and 250000-row batched Arrow assembly measured as candidate 3.0.1; same runtime optimization ships independently as 3.0.2 to avoid the parallel documentation PR version.",
   "date": "2026-10-06",
   "baseline_sources": {
     "2.9.1-polars": "3e0912c",
     "3.0.0-arrow": "be449cbed70be8f515bb92b3eb2f43e55276917c",
-    "optimized": "perf/attribute-expansion PR against be449cb; version 3.0.1"
+    "optimized": "bd0cd44b145dc089968a77b4b6ca3bd614716ee2 (measured candidate 3.0.1); release 3.0.2 changes version numbering only"
   },
   "method": {
     "threads": 4,
@@ -7141,5 +7141,7 @@
         "wall_seconds": 40.073447916001896
       }
     }
-  }
+  },
+  "release_version": "3.0.2",
+  "measured_optimization_version": "3.0.1"
 }

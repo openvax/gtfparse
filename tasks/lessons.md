@@ -7,3 +7,5 @@
 - When asked to close an unreproduced historical report, record the evidence
   and close it as unreproduced rather than leaving it open indefinitely or
   implying that an unverified fix shipped.
+- When asked to finish a PR, prioritize its remaining checks, merge and
+  publication before further experiments or follow-up work.
