@@ -4,6 +4,10 @@
 name: Tests
 on: [push, pull_request]
 
+env:
+  # Reruns share run_id; each attempt needs its own parallel coverage report.
+  COVERALLS_SERVICE_NUMBER: ${{ github.run_id }}-${{ github.run_attempt }}
+
 jobs:
   packaging:
     runs-on: ubuntu-latest

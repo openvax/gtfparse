@@ -309,6 +309,14 @@ remaining issues without automatically starting unrelated work.
 
 ## Review
 
+CI recovery replan: hosted runner assignment failures interrupted the first
+workflow attempt. A rerun then reproduced Coveralls rejecting uploads because
+the original attempt had already finalized the same GitHub run ID. File this
+workflow defect, give every attempt a distinct Coveralls service number shared
+by uploads and finalization, rerun the required scripts and validate both the
+new workflow and a full rerun before merging. Preserve coverage aggregation. Tracked as #90; use the documented
+COVERALLS_SERVICE_NUMBER override at workflow scope.
+
 Version 3 removes mandatory Polars imports and dependencies, uses typed Arrow
 reading and pandas processing/writing, and preserves explicit Polars adapters.
 The user confirmed the pandas default and optional Polars policy. Fixed-column
