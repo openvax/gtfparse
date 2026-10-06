@@ -464,7 +464,7 @@ Final release status will be recorded on the PR so clean master remains clean
 for ./deploy.sh.
 
 Final validation: ./lint.sh passes. Normal ./test.sh passes 213 tests with
-90% coverage. Base pandas 3.0.6/Arrow 25 and pandas 3.0.6/Arrow 18 pass 199 tests
+97% coverage. Base pandas 3.0.6/Arrow 25 and pandas 3.0.6/Arrow 18 pass 199 tests
 plus 10 optional skips (96% coverage). Minimum Python 3.9/pandas 2.2.2/Arrow 18
 passes 199 plus 10 skips (88%; configured object strings omit the Arrow branch).
 Minimum optional Polars 0.20.31 passes 212 plus one modern-only skip (97%, existing
@@ -489,3 +489,10 @@ release/checklist completion will be recorded on the PR after merge and PyPI.
 Release sequencing: documentation PR #93 targets 3.0.1. Keep this PR
 independent of that unmerged work and ship 3.0.2. Benchmark records retain measured candidate version 3.0.1; runtime
 parsing and assembly behavior is unchanged by version numbering.
+
+Coverage review: the pandas 2.3 flag initially reported a drop because its
+default object strings omitted the Arrow batch branch. Opt the batch regression
+into inferred strings, exercising configured Python/Arrow backends on pandas 2
+as well as pandas 3. Normal tests now pass 213 with 97% coverage; recent pandas
+with minimum Arrow 18 passes 199 plus 10 optional skips (96%). Runtime code and
+all retained benchmarks are unchanged.

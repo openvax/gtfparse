@@ -142,7 +142,9 @@ quoted/unquoted, custom quote delimiters, Unicode/whitespace, malformed fragment
 repeated/empty values, pre-split rows, missing-value sentinels and column
 selection. Additional tests check configured Python/Arrow string storage, batch
 boundaries, late-discovered columns, missing batches, fixed-field attribute
-collisions, first-seen order and global progress counts. Existing tests cover streams, null fields, exact
+collisions, first-seen order and global progress counts. The batch regression
+opts pandas 2 into inferred strings so both configured storage backends are
+exercised there; default object-string behavior has separate coverage. Existing tests cover streams, null fields, exact
 integer coordinates, comments/BOM, aliases, converters, progress/cancellation,
 optional Polars, dictionary output and writer round trips.
 
