@@ -379,3 +379,109 @@ into a fresh base environment loads from site-packages, installs no Polars,
 and round-trips all five real fixtures. Archive runner mismatch fixed as #88;
 shipped lint/tests pass with python -m pytest. Release status and published
 artifact verification will be recorded on the PR to keep clean master clean.
+
+# Follow-up: optimize general GTF loading beyond the Polars baseline
+
+## Specification
+
+The user requested a PR to improve the pandas/Arrow implementation and attempt
+repeatable complete-load performance better than the old Polars implementation,
+without narrowing supported inputs or API behavior. Version this as 3.0.1.
+
+Preserve all expanded/raw GTF semantics, fixed numeric/categorical and inferred
+string dtypes, arbitrary/repeated/quoted attributes, column collisions/order,
+missing-value conventions, custom quote/missing-value parameters, pre-split
+attribute sequences, usecols/aliases/converters/version casts/biotype inference,
+optional Polars/dict output, comments/BOM/exact field validation, gzip/short or
+nonseekable caller-owned streams, callbacks and cancellation. Keep Python 3.9+,
+minimum dependencies and the base installation without Polars working. Do not
+change global pandas options or add a compiled/mandatory optional dependency.
+
+Profile complete reads and attribute expansion on actual Ensembl/GENCODE data.
+Evaluate captured attribute pairs, fewer Python allocations/dictionary lookups,
+and avoiding unnecessary raw-string conversion/copies; evaluate Arrow conversion
+settings only if they help complete-load time or peak memory without semantic
+changes. Keep the smallest robust implementation. Add equivalence tests for
+optimized parsing against the original regex/split behavior, including malformed
+and mixed quoting, empty/repeated fields, arbitrary whitespace and pre-split input.
+Document and file any newly discovered existing bugs rather than silently fixing
+behavior during an optimization.
+
+Preserve 3.0.0 and 2.9.1 baselines. Compare all three complete production pipelines
+in fresh sequential processes with four threads, interleaved/reversed ordering,
+three repeats, pandas 2.3.3 and 3.0.6, Ensembl/GENCODE 250k-row plain/gzip corpora.
+Check full-content hashes outside timing. Also run a full GENCODE scaling check;
+record actual corpus/version/ranges/RSS and distinguish repeated throughput from
+single full-file observations. Include optional output and selective-load checks.
+A failure to beat Polars on every case is an honest result, not permission to
+weaken input validation or generality. Publish a worthwhile measured improvement
+with its limits; do not claim pure CSV speed from differently scoped read stages.
+
+## Plan
+
+- [x] Create feature branch, read lessons/API/benchmarks, preserve 3.0.0 baseline.
+- [x] Profile dominant costs and measure equivalent candidate implementations.
+- [x] Implement the smallest measured improvements, preserving public behavior.
+- [x] Add differential parser/API regression coverage and review edge cases.
+- [x] Run lint/tests in normal, no-Polars, minimum and optional environments.
+- [x] Record repeated complete-reader comparisons and full-file scaling evidence.
+- [x] Update version/benchmark documentation and review final diff.
+- [ ] Open PR, pass checks, merge, deploy from clean master and verify PyPI.
+- [ ] Review remaining relevant issues and record the next candidate on the PR.
+
+## Review
+
+The optimized parser captures double-quoted values directly and removes the
+split/intern lookup work on ordinary raw attributes, while preserving the legacy
+fallback grammar and pre-split support. For configured Arrow strings, 250,000-row
+batches retain compact Arrow chunks and release temporary Python values. Missing
+prefixes/gaps, late columns, first-seen order, collisions and global progress are
+preserved. Python/object storage keeps compatible full-list construction.
+
+The frozen legacy parser oracle covers custom quotes/sentinels, arbitrary
+malformed fragments, repetitions, pre-split values and selection. 71 full API/dtype
+comparisons against 3.0.0 pass on each pandas version (142 total). Configured
+Python/Arrow storage, batch boundaries and fixed-field collisions pass. Final
+script, compatibility-environment and packaging results follow below.
+
+The final repeated subset sweep completes all 72 fresh-process reads with
+matching hashes. On pandas 3.0.6, median load time is 17–25% lower than 2.9.1
+Polars and 31–36% lower than 3.0.0. pandas 2.3.3 Ensembl medians improve, while
+GENCODE wall times are mixed and highly variable; all runs and ranges remain in
+the report. Subset peak RSS is 3–6% lower than 3.0.0 and about -3% to +4% relative
+to Polars. Full-file scaling and final selective/optional checks follow below.
+
+Memory replan: the unbatched candidate's full GENCODE RSS was higher than the
+3.0.0 observation, and a repeat remained high. Both existing 3.0.0 and that
+candidate materialized Python values for the entire file despite compact final
+Arrow strings. Filed #91 and replaced unbounded temporary attribute construction
+with batches, retaining the public expansion contract and configured string
+storage. Rejected full-file observations are retained separately, rather than
+mixed into final medians. The first 100,000-row-batch GENCODE check reduced peak
+RSS to 2.3 GiB and matched content; final comparisons use 250,000-row batches.
+
+Final release status will be recorded on the PR so clean master remains clean
+for ./deploy.sh.
+
+Final validation: ./lint.sh passes. Normal ./test.sh passes 213 tests with
+90% coverage. Base pandas 3.0.6/Arrow 25 and pandas 3.0.6/Arrow 18 pass 199 tests
+plus 10 optional skips (96% coverage). Minimum Python 3.9/pandas 2.2.2/Arrow 18
+passes 199 plus 10 skips (88%; configured object strings omit the Arrow branch).
+Minimum optional Polars 0.20.31 passes 212 plus one modern-only skip (97%, existing
+native categorical-remapping warning). Tests treat DeprecationWarning as errors.
+
+All 84 final benchmark runs match expected content/order. Full Ensembl (4,116,048
+rows) takes 36.86 s/3639 MiB versus Polars 47.11 s/6504 MiB and 3.0.0 67.63 s/7199
+MiB. Full GENCODE (4,119,244 rows) takes 29.88 s/3698 MiB versus Polars 43.74 s/7091
+MiB and 3.0.0 52.35 s/6560 MiB. These are single observations per reader on the
+shared workstation, distinct from the repeated subset medians. Final selective
+exon/five-column and optional Polars-output checks also match all three releases.
+84 final records and separately labeled development evidence are retained in
+benchmarks/optimization-results.json. Version is bumped to 3.0.1.
+
+Packaging review: wheel and source distribution build successfully, have identical
+3.0.1 dependency metadata, and pass strict Twine checks. The wheel excludes tests
+and benchmarks; the source archive includes the new regression tests, runner and
+retained evidence. Its shipped ./lint.sh and ./test.sh pass (199 plus 10 optional
+skips, 96% coverage). Production code, test oracle and benchmark method reviewed;
+release/checklist completion will be recorded on the PR after merge and PyPI.
