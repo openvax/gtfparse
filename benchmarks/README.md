@@ -1,8 +1,11 @@
 # GTF reader backend comparison
 
-Version 3 uses PyArrow for fixed-column parsing and pandas for attribute
+The 3.0.0 migration uses PyArrow for fixed-column parsing and pandas for attribute
 processing and writing. Polars is an optional output adapter. This directory
 contains the measurement harness and the evidence for that decision.
+
+The follow-up [3.0.2 optimization report](optimization.md) compares the optimized
+complete reader with both the 2.9.1 Polars and 3.0.0 Arrow/pandas releases.
 
 ## Reproduction
 
@@ -54,7 +57,7 @@ include raw attributes, filtering, selection, aliases, version casts, biotype
 inference and converters; separate regressions cover streams, nullable fields,
 comments, malformed inputs and progress/cancellation semantics.
 
-## Production results
+## 3.0.0 migration results
 
 The table shows three-run medians for equivalent pandas output. Complete load
 time includes fixed-column reading, attribute expansion, assembly and transforms.

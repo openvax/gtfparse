@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 from time import perf_counter, process_time
 
+import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -257,6 +258,7 @@ def main():
         "versions": {
             "gtfparse": __version__,
             "pandas": pd.__version__,
+            "numpy": np.__version__,
             "polars": pl.__version__ if pl is not None else None,
             "pyarrow": pa.__version__,
             "python": platform.python_version(),

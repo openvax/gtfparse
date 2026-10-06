@@ -13,7 +13,6 @@
 import logging
 import re
 from collections import OrderedDict
-from sys import intern
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,9 @@ logger = logging.getLogger(__name__)
 # re module so the low-level split column agrees with
 # attribute expansion. Unquoted values and single quotes are accepted as well.
 ATTRIBUTE_PATTERN = r"""[^\s;]+[ \t]+(?:"[^"]*"|'[^']*'|[^;]+)"""
-_ATTRIBUTE_PAIRS = re.compile(ATTRIBUTE_PATTERN)
+# Capture double-quoted values without their delimiters. Other values retain
+# their original quoting for custom quote_char and pre-split input support.
+_ATTRIBUTE_PAIRS = re.compile(r"""([^\s;]+)[ \t]+(?:"([^"]*)"|('[^']*'|[^;]+))""")
 
 
 def expand_attribute_strings(
@@ -61,61 +62,51 @@ def expand_attribute_strings(
     n = len(attribute_strings)
 
     extra_columns = {}
-    column_order = []
-
-    # While parsing millions of repeated strings (e.g. "gene_id" and "TP53"),
-    # we can save a lot of memory by making sure there's only one string
-    # object per unique column name. Cache interned names locally as well.
-    column_interned_strings = {}
 
     if progress_callback is not None:
         progress_callback("attributes", 0, n)
 
     for i, kv_strings in enumerate(attribute_strings):
         if isinstance(kv_strings, str):
-            kv_strings = _ATTRIBUTE_PAIRS.findall(kv_strings)
+            pairs = _ATTRIBUTE_PAIRS.findall(kv_strings)
         elif kv_strings is None:
-            kv_strings = ()
-        for kv in kv_strings:
-            # Split once: values such as transcript_support_level may include
-            # spaces, and whitespace between a key and its value may vary.
-            parts = kv.strip().split(None, 1)
-
-            if len(parts) != 2:
-                continue
-
-            column_name, value = parts
-
-            try:
-                column_name = column_interned_strings[column_name]
-            except KeyError:
-                column_name = intern(column_name)
-                column_interned_strings[column_name] = column_name
-
+            pairs = ()
+        else:
+            # Already separated pairs retain their permissive split behavior.
+            pairs = (
+                (parts[0], "", parts[1])
+                for kv in kv_strings
+                if len(parts := kv.strip().split(None, 1)) == 2
+            )
+        for column_name, double_quoted, other in pairs:
             if usecols is not None and column_name not in usecols:
                 continue
 
-            if len(value) >= 2 and value[0] in ('"', quote_char) and value[-1] == value[0]:
-                value = value[1:-1]
+            if other:
+                value = other.strip()
+                if not value:
+                    continue
+                if len(value) >= 2 and value[0] in ('"', quote_char) and value[-1] == value[0]:
+                    value = value[1:-1]
+            else:
+                value = double_quoted
 
-            try:
-                column = extra_columns[column_name]
-                # if an attribute is used repeatedly then
-                # keep track of all its values in a list
-                old_value = column[i]
-                if old_value is missing_value:
-                    column[i] = value
-                else:
-                    column[i] = "%s,%s" % (old_value, value)
-            except KeyError:
+            column = extra_columns.get(column_name)
+            if column is None:
                 column = [missing_value] * n
-                column[i] = value
                 extra_columns[column_name] = column
-                column_order.append(column_name)
+                column[i] = value
+            elif column[i] is missing_value:
+                column[i] = value
+            else:
+                # Preserve repeated attributes and the missing-value identity
+                # convention, including repeated empty quoted values.
+                column[i] = "%s,%s" % (column[i], value)
 
-        completed = i + 1
-        if progress_callback is not None and (completed % 10_000 == 0 or completed == n):
-            progress_callback("attributes", completed, n)
+        if progress_callback is not None:
+            completed = i + 1
+            if completed % 10_000 == 0 or completed == n:
+                progress_callback("attributes", completed, n)
 
-    logger.info("Extracted GTF attributes: %s", column_order)
-    return OrderedDict((column_name, extra_columns[column_name]) for column_name in column_order)
+    logger.info("Extracted GTF attributes: %s", list(extra_columns))
+    return OrderedDict(extra_columns)
