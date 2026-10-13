@@ -513,7 +513,7 @@ after the modern stack is verified. Update PR branches without publishing.
 - [x] Preserve current code while resolving the version conflict.
 - [x] Run lint, tests and documentation checks on #93.
 - [x] Incorporate #93 in #95 and verify its separate patch bump.
-- [ ] Update the PR branches and close superseded #74.
+- [x] Update both PR branches. Closing superseded #74 is the final remote step.
 
 ## Review
 
