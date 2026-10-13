@@ -14,6 +14,7 @@ import logging
 from os.path import exists
 
 import pandas as pd
+import pyarrow as pa
 
 from ._polars import require_polars
 from ._read_csv import REQUIRED_COLUMNS as REQUIRED_COLUMNS
@@ -147,6 +148,47 @@ def parse_gtf_pandas(*args, **kwargs):
     return result
 
 
+_ATTRIBUTE_BATCH_SIZE = 250_000
+
+
+def _expand_attributes_as_arrow(attributes, usecols, progress_callback):
+    """Keep temporary Python values bounded while retaining Arrow column chunks."""
+    total = len(attributes)
+    columns = {}
+    string_type = pa.large_string()
+    empty = pa.scalar("", type=string_type)
+    if progress_callback is not None:
+        progress_callback("attributes", 0, total)
+
+    def report(stage, completed, _total):
+        absolute = start + completed
+        if completed and (absolute % 10_000 == 0 or absolute == total):
+            progress_callback(stage, absolute, total)
+
+    for start in range(0, total, _ATTRIBUTE_BATCH_SIZE):
+        stop = min(start + _ATTRIBUTE_BATCH_SIZE, total)
+        values = attributes.iloc[start:stop].to_numpy(dtype=object, na_value=None)
+        expanded = expand_attribute_strings(
+            values,
+            usecols=usecols,
+            progress_callback=report if progress_callback is not None else None,
+        )
+        del values
+        missing = columns.keys() - expanded.keys()
+        if missing:
+            blank = pa.repeat(empty, stop - start)
+            for name in missing:
+                columns[name].append(blank)
+        prefix = None
+        for name in list(expanded):
+            if name not in columns:
+                if start and prefix is None:
+                    prefix = pa.repeat(empty, start)
+                columns[name] = [prefix] if start else []
+            columns[name].append(pa.array(expanded.pop(name), type=string_type))
+    return {name: pa.chunked_array(chunks, type=string_type) for name, chunks in columns.items()}
+
+
 def parse_gtf_and_expand_attributes(
     filepath_or_buffer, restrict_attribute_columns=None, features=None, *, progress_callback=None
 ):
@@ -181,15 +223,26 @@ def parse_gtf_and_expand_attributes(
     elif restrict_attribute_columns:
         restrict_attribute_columns = set(restrict_attribute_columns)
     attributes = df.pop("attribute")
-    attributes = attributes.astype(object).where(attributes.notna(), None)
-    expanded = expand_attribute_strings(
-        attributes,
-        usecols=restrict_attribute_columns,
-        progress_callback=progress_callback,
-    )
+    string_dtype = pd.Series([""]).dtype
+    arrow_strings = isinstance(string_dtype, pd.StringDtype) and string_dtype.storage == "pyarrow"
+    if arrow_strings:
+        expanded = _expand_attributes_as_arrow(
+            attributes, restrict_attribute_columns, progress_callback
+        )
+    else:
+        expanded = expand_attribute_strings(
+            attributes.to_numpy(dtype=object, na_value=None),
+            usecols=restrict_attribute_columns,
+            progress_callback=progress_callback,
+        )
+    # Release raw strings before assembling the final pandas columns.
+    del attributes
     # Assigning a colliding attribute replaces its fixed column, matching the
     # previous reader, while preserving the fixed columns' original positions.
-    for name, values in expanded.items():
+    for name in list(expanded):
+        values = expanded.pop(name)
+        if arrow_strings:
+            values = pd.array(values, dtype=string_dtype)
         df[name] = values
     return df
 
