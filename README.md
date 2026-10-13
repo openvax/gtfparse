@@ -6,8 +6,9 @@
 
 gtfparse
 ========
-Parsing tools for GTF (gene transfer format) files.
-
+Read GTF (gene transfer format) annotations into a pandas DataFrame, with one
+row per feature and attribute values such as gene and transcript IDs expanded
+into columns.
 
 ## Install
 
@@ -15,8 +16,8 @@ Parsing tools for GTF (gene transfer format) files.
 python -m pip install gtfparse
 ```
 
-Python 3.9 or later is required. Version 3 uses pandas and PyArrow; Polars
-output is optional and requires `gtfparse[polars]`.
+Python 3.9 or later is required. For optional Polars output, install
+`gtfparse[polars]`.
 
 ## Read an annotation and find genes
 
@@ -62,5 +63,6 @@ it is not the gene ID. The ninth GTF field supplies attributes such as
 - [Version 3 migration and optional Polars output](docs/guides/migration.md)
 - [Complete API reference](docs/reference.md)
 
-Build with `python -m pip install -r requirements-docs.txt` and `./docs.sh`.
-Run `python scripts/check_docs_examples.py` to verify the printed examples.
+To build the documentation locally, run
+`python -m pip install -r requirements-docs.txt` and `./docs.sh`.
+`python scripts/check_docs_examples.py` checks the printed example output.
