@@ -8,117 +8,59 @@ gtfparse
 ========
 Parsing tools for GTF (gene transfer format) files.
 
-## Version 3 migration
 
-`read_gtf`, `parse_gtf`, and `parse_gtf_and_expand_attributes` now return pandas
-DataFrames by default. GTF reading uses PyArrow; attribute processing and writing
-use pandas. Polars is no longer a required dependency and is imported only for
-explicit Polars conversion. Ordinary installations need only pandas and PyArrow.
+## Install
 
 ```sh
-pip install gtfparse
-# Optional, for applications that still request Polars frames:
-pip install 'gtfparse[polars]'
+python -m pip install gtfparse
 ```
 
-```python
-from gtfparse import read_gtf, write_gtf
+Python 3.9 or later is required. Version 3 uses pandas and PyArrow; Polars
+output is optional and requires `gtfparse[polars]`.
 
-df = read_gtf("gene_annotations.gtf")  # pandas.DataFrame
-write_gtf(df, "gene_annotations.gtf.gz")
+## Read an annotation and find genes
 
-# Requires the optional extra:
-polars_df = read_gtf("gene_annotations.gtf", result_type="polars")
-```
-
-Existing pandas and dictionary callers retain their output shape, fixed-column
-dtypes, attribute handling, filters, converters and progress callbacks. Applications
-that used the previous default Polars output should add `result_type="polars"`
-and install the extra, or use pandas methods. `write_gtf` accepts either frame
-type. The legacy `parse_with_polars_lazy` helper remains an optional adapter:
-it reads the file eagerly and returns a Polars LazyFrame, as before.
-
-Empty or malformed GTF fields now raise `gtfparse.ParsingError`, including wrong
-field counts and invalid numeric fields. Whole comment lines are ignored;
-literal `#` inside attributes is preserved. Text and binary streams stay open
-after parsing, and gzip is detected from its contents.
-
-## Reporting parsing progress
-
-Pass `progress_callback(stage, completed, total)` to `read_gtf` to connect
-parsing to your own progress UI. The callback runs synchronously; exceptions
-from it stop parsing and propagate to the caller. Without a callback, gtfparse
-does not display a progress bar or add a progress-library dependency.
-
-| Stage | Reports |
-| --- | --- |
-| `read` | `(0, None)` before loading/filtering the file; `(rows, rows)` after it succeeds |
-| `attributes` | `(0, rows)`, then every 10,000 rows, then `(rows, rows)` |
-| `convert` | `(0, None)` before output conversion/transforms; `(rows, rows)` after success |
-
-Counts refer to rows retained after `features` filtering, not bytes or overall
-percentages. `None` means the total is unknown: loading and conversion expose
-only stage boundaries, so use an indeterminate indicator during those steps.
-Attribute expansion is omitted when `expand_attribute_column=False`. A stage
-that fails does not emit completion. An empty filtered result is supported;
-its attributes stage emits a single `(0, 0)` event. Empty input files raise `gtfparse.ParsingError`.
-
-For example, with the optional `tqdm` package installed:
+This small artificial GTF runs without a download. Replace the stream with
+your annotation filename when working with a real dataset.
 
 ```python
-from gtfparse import read_gtf
-from tqdm.auto import tqdm
-
-with tqdm(unit="rows") as bar:
-    def show_progress(stage, completed, total):
-        if stage != bar.desc:
-            bar.total = total
-            bar.reset()
-            bar.set_description_str(stage)
-        bar.total = total
-        bar.update(completed - bar.n)
-        bar.refresh()
-
-    df = read_gtf("gene_annotations.gtf", progress_callback=show_progress)
-```
-
-`parse_gtf` reports the `read` stage, `parse_gtf_and_expand_attributes` reports
-`read` and `attributes`, `parse_gtf_pandas` reports `read` and `convert`, and
-`expand_attribute_strings` reports only `attributes` using the same callback.
-
-Quoted attribute values preserve spaces, semicolons, and apostrophes. Raw
-attributes (`expand_attribute_column=False`) retain their original quote marks.
-
-# Example usage
-
-## Parsing all rows of a GTF file into a Pandas DataFrame
-
-```python
+from io import StringIO
 from gtfparse import read_gtf
 
-# returns GTF with essential columns such as "feature", "seqname", "start", "end"
-# alongside the names of any optional keys which appeared in the attribute column
-df = read_gtf("gene_annotations.gtf")
-
-# filter DataFrame to gene entries on chrY
-df_genes = df[df["feature"] == "gene"]
-df_genes_chrY = df_genes[df_genes["seqname"] == "Y"]
+annotation = StringIO(
+    '1\texample\tgene\t101\t200\t.\t+\t.\tgene_id "g1"; gene_name "EXAMPLE";\n'
+    '1\texample\texon\t101\t150\t.\t+\t.\tgene_id "g1"; transcript_id "t1";\n'
+)
+features = read_gtf(annotation)
+genes = features.loc[features["feature"] == "gene"]
+print(genes["gene_name"].tolist())
+for row in features.itertuples():
+    print(row.feature, row.seqname, row.start, row.end, row.gene_id)
 ```
 
-
-## Getting gene FPKM values from a StringTie GTF file
-
-```python
-from gtfparse import read_gtf
-
-df = read_gtf(
-    "Transcripts.gtf",
-    column_converters={"FPKM": float})
-
-gene_fpkms = {
-    gene_name: fpkm
-    for (gene_name, fpkm, feature)
-    in zip(df["seqname"], df["FPKM"], df["feature"])
-    if feature == "gene"
-}
+```text
+['EXAMPLE']
+gene 1 101 200 g1
+exon 1 101 150 g1
 ```
+
+`feature` identifies the row type. `seqname` is the chromosome or contig name;
+it is not the gene ID. The ninth GTF field supplies attributes such as
+`gene_id`, `gene_name` and `transcript_id`.
+
+
+<a id="version-3-migration"></a>
+<a id="reporting-parsing-progress"></a>
+<a id="example-usage"></a>
+<a id="parsing-all-rows-of-a-gtf-file-into-a-pandas-dataframe"></a>
+<a id="getting-gene-fpkm-values-from-a-stringtie-gtf-file"></a>
+
+## Documentation
+
+- [Filter features, select chromosomes, write GTF and read numeric attributes](docs/guides/annotations.md)
+- [Progress callbacks](docs/guides/progress.md)
+- [Version 3 migration and optional Polars output](docs/guides/migration.md)
+- [Complete API reference](docs/reference.md)
+
+Build with `python -m pip install -r requirements-docs.txt` and `./docs.sh`.
+Run `python scripts/check_docs_examples.py` to verify the printed examples.

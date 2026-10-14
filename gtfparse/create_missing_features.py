@@ -44,8 +44,11 @@ def create_missing_features(dataframe, unique_keys={}, extra_columns={}, missing
     missing_value : any
         Which value to fill in for columns that we don't infer values for.
 
-    Returns original dataframe (converted to Pandas if necessary) along with all
-    extra rows created for missing features.
+    Returns
+    -------
+    pandas.DataFrame
+        Original rows (converted to pandas if necessary) together with the
+        extra rows created for missing features.
     """
     if hasattr(dataframe, "to_pandas"):
         dataframe = dataframe.to_pandas()

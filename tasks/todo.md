@@ -496,3 +496,26 @@ into inferred strings, exercising configured Python/Arrow backends on pandas 2
 as well as pandas 3. Normal tests now pass 213 with 97% coverage; recent pandas
 with minimum Arrow 18 passes 199 plus 10 optional skips (96%). Runtime code and
 all retained benchmarks are unchanged.
+
+# Documentation PR review fixes (2026-10-13)
+
+## Specification
+
+Preserve the pandas-default documentation and current master fixes while
+resolving the version conflict in PR #93. Use 3.0.3 for #93 and 3.0.4 for its
+stacked follow-up #95. Verify both branches with the repository lint/test
+wrappers and executable docs checks. Retire superseded Polars-default PR #74
+after the modern stack is verified. Update PR branches without publishing.
+
+## Plan
+
+- [x] Inspect PR heads, current master and version requirements.
+- [x] Preserve current code while resolving the version conflict.
+- [x] Run lint, tests and documentation checks on #93.
+- [ ] Incorporate #93 in #95 and verify its separate patch bump.
+- [ ] Update the PR branches and close superseded #74.
+
+## Review
+
+PR #93: lint passed, all 213 tests passed, all three executable documentation
+examples passed, and the strict MkDocs build passed.
