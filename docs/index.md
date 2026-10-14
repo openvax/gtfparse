@@ -9,8 +9,8 @@ attribute values such as gene and transcript IDs expanded into columns.
 python -m pip install gtfparse
 ```
 
-Python 3.9 or later is required. Version 3 uses pandas and PyArrow; Polars
-output is optional and requires `gtfparse[polars]`.
+Python 3.9 or later is required. For optional Polars output, install
+`gtfparse[polars]`.
 
 ## Read an annotation and find genes
 
@@ -59,6 +59,8 @@ features = read_gtf("annotations.gtf.gz", features={"gene", "transcript"})
 The `features` option filters row types while reading. Compressed inputs are
 detected from their contents. Attribute expansion does not turn every row into
 a gene or automatically supply missing parent features.
+Quoted attribute values preserve spaces, semicolons, and apostrophes. Raw
+attributes (`expand_attribute_column=False`) retain their original quote marks.
 
 Continue with [filter and write annotations](guides/annotations.md), then
 [progress callbacks](guides/progress.md) or [version 3 migration](guides/migration.md).

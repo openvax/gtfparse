@@ -512,10 +512,12 @@ after the modern stack is verified. Update PR branches without publishing.
 - [x] Inspect PR heads, current master and version requirements.
 - [x] Preserve current code while resolving the version conflict.
 - [x] Run lint, tests and documentation checks on #93.
-- [ ] Incorporate #93 in #95 and verify its separate patch bump.
-- [ ] Update the PR branches and close superseded #74.
+- [x] Incorporate #93 in #95 and verify its separate patch bump.
+- [x] Update both PR branches. Closing superseded #74 is the final remote step.
 
 ## Review
 
 PR #93: lint passed, all 213 tests passed, all three executable documentation
 examples passed, and the strict MkDocs build passed.
+PR #95: merged the refreshed parent; version 3.0.4, lint, 213 tests, and the
+strict MkDocs build passed.
