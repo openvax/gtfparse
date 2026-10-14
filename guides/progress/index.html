@@ -349,6 +349,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Report parsing progress
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -365,6 +383,47 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#stages-and-counts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stages and counts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lower-level-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lower-level functions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -604,6 +663,36 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#stages-and-counts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stages and counts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lower-level-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lower-level functions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -624,9 +713,25 @@
 
 <h1 id="report-parsing-progress">Report parsing progress<a class="headerlink" href="#report-parsing-progress" title="Permanent link">&para;</a></h1>
 <p>Pass <code>progress_callback(stage, completed, total)</code> to <code>read_gtf</code> to connect
-parsing to your own progress UI. The callback runs synchronously; exceptions
-from it stop parsing and propagate to the caller. Without a callback, gtfparse
-does not display a progress bar or add a progress-library dependency.</p>
+parsing to your own progress UI. Without a callback, gtfparse does not display
+a progress bar or add a progress-library dependency.</p>
+<p>This example requires the optional <code>tqdm</code> package and your own GTF file:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gtfparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_gtf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm.auto</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="k">with</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="s2">"rows"</span><span class="p">)</span> <span class="k">as</span> <span class="n">bar</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">show_progress</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="n">completed</span><span class="p">,</span> <span class="n">total</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">stage</span> <span class="o">!=</span> <span class="n">bar</span><span class="o">.</span><span class="n">desc</span><span class="p">:</span>
+            <span class="n">bar</span><span class="o">.</span><span class="n">total</span> <span class="o">=</span> <span class="n">total</span>
+            <span class="n">bar</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+            <span class="n">bar</span><span class="o">.</span><span class="n">set_description_str</span><span class="p">(</span><span class="n">stage</span><span class="p">)</span>
+        <span class="n">bar</span><span class="o">.</span><span class="n">total</span> <span class="o">=</span> <span class="n">total</span>
+        <span class="n">bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">completed</span> <span class="o">-</span> <span class="n">bar</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">bar</span><span class="o">.</span><span class="n">refresh</span><span class="p">()</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">read_gtf</span><span class="p">(</span><span class="s2">"gene_annotations.gtf"</span><span class="p">,</span> <span class="n">progress_callback</span><span class="o">=</span><span class="n">show_progress</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="stages-and-counts">Stages and counts<a class="headerlink" href="#stages-and-counts" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -652,30 +757,15 @@ does not display a progress bar or add a progress-library dependency.</p>
 <p>Counts refer to rows retained after <code>features</code> filtering, not bytes or overall
 percentages. <code>None</code> means the total is unknown: loading and conversion expose
 only stage boundaries, so use an indeterminate indicator during those steps.
-Attribute expansion is omitted when <code>expand_attribute_column=False</code>. A stage
-that fails does not emit completion. An empty filtered result is supported;
-its attributes stage emits a single <code>(0, 0)</code> event. Empty input files raise <code>gtfparse.ParsingError</code>.</p>
-<p>For example, with the optional <code>tqdm</code> package installed:</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gtfparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_gtf</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm.auto</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
-
-<span class="k">with</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="s2">"rows"</span><span class="p">)</span> <span class="k">as</span> <span class="n">bar</span><span class="p">:</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">show_progress</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="n">completed</span><span class="p">,</span> <span class="n">total</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">stage</span> <span class="o">!=</span> <span class="n">bar</span><span class="o">.</span><span class="n">desc</span><span class="p">:</span>
-            <span class="n">bar</span><span class="o">.</span><span class="n">total</span> <span class="o">=</span> <span class="n">total</span>
-            <span class="n">bar</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-            <span class="n">bar</span><span class="o">.</span><span class="n">set_description_str</span><span class="p">(</span><span class="n">stage</span><span class="p">)</span>
-        <span class="n">bar</span><span class="o">.</span><span class="n">total</span> <span class="o">=</span> <span class="n">total</span>
-        <span class="n">bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">completed</span> <span class="o">-</span> <span class="n">bar</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
-        <span class="n">bar</span><span class="o">.</span><span class="n">refresh</span><span class="p">()</span>
-
-    <span class="n">df</span> <span class="o">=</span> <span class="n">read_gtf</span><span class="p">(</span><span class="s2">"gene_annotations.gtf"</span><span class="p">,</span> <span class="n">progress_callback</span><span class="o">=</span><span class="n">show_progress</span><span class="p">)</span>
-</code></pre></div>
+Attribute expansion is omitted when <code>expand_attribute_column=False</code>.</p>
+<p>The callback runs synchronously; exceptions from it stop parsing and propagate
+to the caller. A stage that fails does not emit completion. An empty filtered
+result is supported; its attributes stage emits a single <code>(0, 0)</code> event. Empty
+input files raise <code>gtfparse.ParsingError</code>.</p>
+<h2 id="lower-level-functions">Lower-level functions<a class="headerlink" href="#lower-level-functions" title="Permanent link">&para;</a></h2>
 <p><code>parse_gtf</code> reports the <code>read</code> stage, <code>parse_gtf_and_expand_attributes</code> reports
 <code>read</code> and <code>attributes</code>, <code>parse_gtf_pandas</code> reports <code>read</code> and <code>convert</code>, and
 <code>expand_attribute_strings</code> reports only <code>attributes</code> using the same callback.</p>
-<p>Quoted attribute values preserve spaces, semicolons, and apostrophes. Raw
-attributes (<code>expand_attribute_column=False</code>) retain their original quote marks.</p>
 
 
 
