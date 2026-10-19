@@ -11,7 +11,7 @@ import os
 import statistics
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -120,7 +120,7 @@ def main():
                         )
     result = {
         "description": "Complete production readers; imports/checksums outside wall time; sequential fresh processes",
-        "date": datetime.now(timezone.utc).isoformat(),
+        "date": datetime.now(UTC).isoformat(),
         "threads": args.threads,
         "inputs": {
             path.name: {

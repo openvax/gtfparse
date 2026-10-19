@@ -29,7 +29,7 @@ Do not tell the user you are "done" or that changes are "complete" until both pa
 
 - Use ruff for linting
 - Configuration is in `pyproject.toml` under `[tool.ruff]`
-- Target Python version: 3.9+ (CI matrix runs 3.9 / 3.10 / 3.11)
+- Target Python version: 3.11+ (CI matrix runs 3.11 through 3.14)
 
 ## Project Shape
 
