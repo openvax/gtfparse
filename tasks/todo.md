@@ -521,3 +521,34 @@ PR #93: lint passed, all 213 tests passed, all three executable documentation
 examples passed, and the strict MkDocs build passed.
 PR #95: merged the refreshed parent; version 3.0.4, lint, 213 tests, and the
 strict MkDocs build passed.
+
+# Python 3.11 support floor (#96)
+
+## Specification
+
+Require Python 3.11 or newer with no upper bound. Test Python 3.11–3.14 in CI,
+retaining the existing pandas, PyArrow, and optional Polars compatibility
+combinations. Keep support for both pandas 2 and 3 because this change only
+raises the Python floor. Align package metadata, docs, tooling, and repository
+guidance; bump the patch version to 3.0.5. Preserve parsing behavior.
+
+## Plan
+
+- [x] Read issue, package requirements, CI matrix, repo guidance, and tests.
+- [x] Check plan before implementation: retain compatibility jobs on 3.11 and
+  add 3.12–3.14 jobs with current dependencies; move packaging endpoints to
+  3.11 and 3.14.
+- [x] Update metadata, docs, CI, target version, and package version.
+- [x] Run `./lint.sh` and `./test.sh` in an isolated environment.
+- [x] Verify installed metadata/dependencies and tests on Python 3.11 and 3.14;
+  review the diff.
+- [ ] Open PR, pass CI, merge, deploy from clean master, verify publication.
+
+## Review
+
+`./lint.sh` passed. `./test.sh -W error::DeprecationWarning` passed all 213
+tests with pandas 3.0.6, PyArrow 26, and Polars 2.0.0 on both Python 3.11.12
+and 3.14.6 (97% coverage). Isolated dependency checks passed at both endpoints.
+Installed metadata reports version 3.0.5, `Requires-Python: >=3.11`, and the
+existing pandas 2-compatible dependency floor. Ruff's new Python target enabled
+two safe Python 3.11 syntax updates; no parsing behavior changed.

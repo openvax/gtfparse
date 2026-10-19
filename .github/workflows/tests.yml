@@ -14,9 +14,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - python-version: "3.9"
-            setuptools: "setuptools==77.0.3"
           - python-version: "3.11"
+            setuptools: "setuptools==77.0.3"
+          - python-version: "3.14"
             setuptools: "setuptools"
     steps:
       - uses: actions/checkout@v4
@@ -45,11 +45,19 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          - python-version: "3.9"
+          - python-version: "3.11"
             pandas-version: "minimum"
             pyarrow-version: "minimum"
             polars-version: "none"
-          - python-version: "3.10"
+          - python-version: "3.12"
+            pandas-version: "latest"
+            pyarrow-version: "latest"
+            polars-version: "none"
+          - python-version: "3.13"
+            pandas-version: "latest"
+            pyarrow-version: "latest"
+            polars-version: "none"
+          - python-version: "3.14"
             pandas-version: "latest"
             pyarrow-version: "latest"
             polars-version: "none"

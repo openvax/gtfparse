@@ -16,7 +16,7 @@ into columns.
 python -m pip install gtfparse
 ```
 
-Python 3.9 or later is required. For optional Polars output, install
+Python 3.11 or later is required. For optional Polars output, install
 `gtfparse[polars]`.
 
 ## Read an annotation and find genes

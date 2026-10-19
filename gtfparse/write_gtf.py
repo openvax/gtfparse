@@ -16,7 +16,7 @@ import sys
 from collections.abc import Iterable
 from itertools import repeat
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 import pandas as pd
 
@@ -74,7 +74,7 @@ def _lines(df):
 def write_gtf(
     df: Union[pd.DataFrame, "polars.DataFrame"],
     path: Union[str, Path],
-    header_lines: Optional[Iterable[str]] = None,
+    header_lines: Iterable[str] | None = None,
 ) -> None:
     """
     Write a DataFrame of genomic features back out to a GTF file.
