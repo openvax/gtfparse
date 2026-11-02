@@ -20,31 +20,12 @@ from typing import TYPE_CHECKING, Union
 
 import pandas as pd
 
+from .columns import GTF_FIXED_COLUMNS, MISSING_VALUE, RAW_ATTRIBUTE_COLUMN
+
 if TYPE_CHECKING:
     import polars
 
 logger = logging.getLogger(__name__)
-
-# The eight tab-separated columns that precede the attribute field of a GTF
-# line, in the order they must be written. Any other column in a DataFrame is
-# treated as an expanded attribute (see read_gtf's expand_attribute_column).
-GTF_FIXED_COLUMNS = [
-    "seqname",
-    "source",
-    "feature",
-    "start",
-    "end",
-    "score",
-    "strand",
-    "frame",
-]
-
-# GTF uses a single dot to denote a missing value in the fixed columns.
-MISSING_VALUE = "."
-
-# Name of the raw, unexpanded attribute column produced by
-# read_gtf(expand_attribute_column=False).
-RAW_ATTRIBUTE_COLUMN = "attribute"
 
 
 def _lines(df):

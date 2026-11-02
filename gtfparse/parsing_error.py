@@ -12,4 +12,9 @@
 
 
 class ParsingError(Exception):
-    pass
+    """Raised when GTF input is empty or malformed.
+
+    For example, a non-comment line without exactly nine tab-separated fields,
+    or a fixed column (such as ``start``) whose value can't be converted to the
+    column's type.
+    """
