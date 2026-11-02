@@ -1,5 +1,9 @@
 # API reference
 
+Signatures, parameters and return values of the public functions. Most code
+needs only [`read_gtf()`](#gtfparse.read_gtf); the table maps other tasks to
+their functions.
+
 | Task | Interface |
 | --- | --- |
 | Read a file with expanded attributes and output conversion | `read_gtf()` |

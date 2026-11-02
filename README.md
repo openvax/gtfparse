@@ -1,14 +1,15 @@
+# gtfparse
+
 [![Tests](https://github.com/openvax/gtfparse/actions/workflows/tests.yml/badge.svg)](https://github.com/openvax/gtfparse/actions/workflows/tests.yml)
 [![Coverage Status](https://coveralls.io/repos/openvax/gtfparse/badge.svg?branch=master&service=github)](https://coveralls.io/github/openvax/gtfparse?branch=master)
-<a href="https://pypi.python.org/pypi/gtfparse/">
-    <img src="https://img.shields.io/pypi/v/gtfparse.svg?maxAge=1000" alt="PyPI" />
-</a>
+[![PyPI](https://img.shields.io/pypi/v/gtfparse.svg)](https://pypi.org/project/gtfparse/)
 
-gtfparse
-========
-Read GTF (gene transfer format) annotations into a pandas DataFrame, with one
-row per feature and attribute values such as gene and transcript IDs expanded
-into columns.
+gtfparse reads GTF (Gene Transfer Format) annotation files, such as those from
+Ensembl and GENCODE, into pandas DataFrames: one row per feature, with
+attributes such as gene and transcript IDs expanded into columns. It can also
+write a table back to GTF. In the [OpenVax](https://github.com/openvax) tools,
+[PyEnsembl](https://github.com/openvax/pyensembl) uses it to read Ensembl and
+custom annotations before indexing them.
 
 ## Install
 
@@ -16,13 +17,14 @@ into columns.
 python -m pip install gtfparse
 ```
 
-Python 3.11 or later is required. For optional Polars output, install
-`gtfparse[polars]`.
+Python 3.11 or later is required. gtfparse depends on pandas and PyArrow; for
+optional Polars output, install `gtfparse[polars]`.
 
-## Read an annotation and find genes
+## Quick start
 
-This small artificial GTF runs without a download. Replace the stream with
-your annotation filename when working with a real dataset.
+<a id="example-usage"></a><a id="parsing-all-rows-of-a-gtf-file-into-a-pandas-dataframe"></a>This
+small artificial GTF runs without a download. Replace the stream with your
+annotation filename when working with a real dataset.
 
 ```python
 from io import StringIO
@@ -47,21 +49,22 @@ exon 1 101 150 g1
 
 `feature` identifies the row type. `seqname` is the chromosome or contig name;
 it is not the gene ID. The ninth GTF field supplies attributes such as
-`gene_id`, `gene_name` and `transcript_id`.
-
-
-<a id="version-3-migration"></a>
-<a id="reporting-parsing-progress"></a>
-<a id="example-usage"></a>
-<a id="parsing-all-rows-of-a-gtf-file-into-a-pandas-dataframe"></a>
-<a id="getting-gene-fpkm-values-from-a-stringtie-gtf-file"></a>
+`gene_id`, `gene_name` and `transcript_id`. Coordinates stay one-based and
+inclusive, as in the file.
 
 ## Documentation
 
-- [Filter features, select chromosomes, write GTF and read numeric attributes](docs/guides/annotations.md)
-- [Progress callbacks](docs/guides/progress.md)
-- [Version 3 migration and optional Polars output](docs/guides/migration.md)
-- [Complete API reference](docs/reference.md)
+The guides are Markdown files in
+[`docs/`](https://github.com/openvax/gtfparse/tree/master/docs). In reading order:
+
+1. <a id="getting-gene-fpkm-values-from-a-stringtie-gtf-file"></a>[Filter and write annotations](https://github.com/openvax/gtfparse/blob/master/docs/guides/annotations.md):
+   select chromosomes and features, write GTF and read numeric attributes.
+2. <a id="reporting-parsing-progress"></a>[Report parsing progress](https://github.com/openvax/gtfparse/blob/master/docs/guides/progress.md)
+   with your own progress bar.
+3. <a id="version-3-migration"></a>[Version 3 migration](https://github.com/openvax/gtfparse/blob/master/docs/guides/migration.md):
+   pandas by default, and optional Polars output.
+4. [API reference](https://github.com/openvax/gtfparse/blob/master/docs/reference.md)
+   for every public function.
 
 To build the documentation locally, run
 `python -m pip install -r requirements-docs.txt` and `./docs.sh`.
