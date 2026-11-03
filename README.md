@@ -22,7 +22,7 @@ optional Polars output, install `gtfparse[polars]`.
 
 ## Quick start
 
-<a id="example-usage"></a><a id="parsing-all-rows-of-a-gtf-file-into-a-pandas-dataframe"></a>This
+<a id="read-an-annotation-and-find-genes"></a><a id="example-usage"></a><a id="parsing-all-rows-of-a-gtf-file-into-a-pandas-dataframe"></a>This
 small artificial GTF runs without a download. Replace the stream with your
 annotation filename when working with a real dataset.
 
