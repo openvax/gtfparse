@@ -10,7 +10,7 @@ their functions.
 | Write annotation rows | `write_gtf()` |
 | Read fixed fields without attribute expansion | `parse_gtf()` |
 | Parse and expand attribute strings | `parse_gtf_and_expand_attributes()` |
-| Request pandas output explicitly | `parse_gtf_pandas()` |
+| Compatibility wrapper: `parse_gtf()` plus a `convert` progress stage | `parse_gtf_pandas()` |
 | Expand a collection of attribute strings | `expand_attribute_strings()` |
 | Synthesize missing parent rows explicitly | `create_missing_features()` |
 

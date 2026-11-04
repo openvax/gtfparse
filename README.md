@@ -69,3 +69,17 @@ The guides are Markdown files in
 To build the documentation locally, run
 `python -m pip install -r requirements-docs.txt` and `./docs.sh`.
 `python scripts/check_docs_examples.py` checks the printed example output.
+
+## Development
+
+```sh
+python -m pip install -e ".[dev]"
+./lint.sh   # ruff check and ruff format --check
+./test.sh   # pytest with coverage
+```
+
+`./format.sh` applies ruff formatting.
+
+## License
+
+Apache 2.0; see [LICENSE](LICENSE).
