@@ -113,8 +113,12 @@ def test_batched_expansion_preserves_late_columns_gaps_collisions_and_progress(
     text = "".join("1\ttest\tgene\t1\t100\t.\t+\t.\t%s\n" % a for a in attrs)
     events = []
     # pandas 2 requires opting into inferred strings to exercise both storage
-    # backends; pandas 3 infers strings by default.
-    with pd.option_context("mode.string_storage", storage, "future.infer_string", True):
+    # backends; pandas 3 infers strings by default, and pandas 3.1 deprecates
+    # the future.infer_string option (#102).
+    options = ["mode.string_storage", storage]
+    if int(pd.__version__.split(".")[0]) < 3:
+        options += ["future.infer_string", True]
+    with pd.option_context(*options):
         frame = read_gtf(StringIO(text), progress_callback=lambda *event: events.append(event))
     assert list(frame)[-4:] == ["gene_id", "tag", "note", "late"]
     assert list(frame).index("start") == 3

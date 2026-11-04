@@ -1,5 +1,9 @@
 # Filter and write annotations
 
+Select rows by chromosome and feature type, write a table back to a compressed
+GTF file, and read numeric attributes such as FPKM. The first two examples use
+a small artificial annotation and run without a download.
+
 ## Select a chromosome and feature
 
 This standalone artificial input has two gene rows on different chromosomes:

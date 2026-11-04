@@ -35,7 +35,7 @@ Do not tell the user you are "done" or that changes are "complete" until both pa
 
 - Package: `gtfparse/` (thin library — attribute parsing, GTF reading, missing feature creation)
 - Tests: `tests/` (pytest; fixtures under `tests/data/`)
-- Core deps: polars, pyarrow, pandas (see `requirements.txt`)
+- Core deps: pyarrow, pandas (see `requirements.txt`); Polars is optional (`gtfparse[polars]`)
 - Version lives in `gtfparse/__init__.py` and is exposed via `setuptools.dynamic` in `pyproject.toml`
 
 ---
