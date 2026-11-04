@@ -1,7 +1,9 @@
 # gtfparse
 
 Read GTF annotations into a pandas DataFrame, with one row per feature and
-attribute values such as gene and transcript IDs expanded into columns.
+attribute values such as gene and transcript IDs expanded into columns, and
+write tables back to GTF. [PyEnsembl](https://github.com/openvax/pyensembl)
+uses gtfparse to read Ensembl and custom annotations.
 
 ## Install
 
