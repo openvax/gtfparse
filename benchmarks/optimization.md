@@ -143,12 +143,11 @@ repeated/empty values, pre-split rows, missing-value sentinels and column
 selection. Additional tests check configured Python/Arrow string storage, batch
 boundaries, late-discovered columns, missing batches, fixed-field attribute
 collisions, first-seen order and global progress counts. The batch regression
-opts pandas 2 into inferred strings so both configured storage backends are
-exercised there; default object-string behavior has separate coverage. Existing tests cover streams, null fields, exact
+selects each pandas string storage backend so both are exercised there; default object-string behavior has separate coverage. Existing tests cover streams, null fields, exact
 integer coordinates, comments/BOM, aliases, converters, progress/cancellation,
 optional Polars, dictionary output and writer round trips.
 
 The verification sweep compares 71 full API/dtype combinations on each pandas
 version against 3.0.0, including all five real fixtures and configured string
-storage. CI exercises Python 3.9+, minimum/current pandas and Arrow, the base
+storage. CI now exercises Python 3.11–3.14, pandas 3 (minimum and current) and Arrow, the base
 installation without Polars, optional Polars versions and packaged source tests.
