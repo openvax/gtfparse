@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://openvax.github.io/gtfparse/dev/documentation-style/">
       
       
-        <link rel="prev" href="../../guides/migration/">
+        <link rel="prev" href="../../reference/">
       
       
       
@@ -261,6 +261,8 @@
       
         
       
+        
+      
     
     
     
@@ -359,96 +361,6 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-    
-    
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Reference
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Reference
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    API reference
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
               
                 
   
@@ -480,6 +392,33 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -623,6 +562,10 @@
 <h1 id="documentation-style">Documentation style<a class="headerlink" href="#documentation-style" title="Permanent link">&para;</a></h1>
 <p>Follow the <a href="https://github.com/openvax/pyensembl/blob/edd183d/docs/dev/documentation-style.md">PyEnsembl writing guide</a>
 and the <a href="https://github.com/openvax/mhctools/tree/master/docs">mhctools example</a>.</p>
+<p><code>README.md</code> is also the PyPI page, so its links are absolute. It follows the
+layout shared by OpenVax libraries: title and badges, one paragraph on purpose
+and related libraries, then Install, Quick start (with checked output),
+Documentation (the guides in reading order), Development and License.</p>
 <p>Put installation and the first useful example on the home page. Give complete
 imports and concrete inputs, explain the result, and state prerequisites before
 the reader runs a command. Show output only when it has been checked. Label
