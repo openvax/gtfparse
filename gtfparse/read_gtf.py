@@ -17,9 +17,9 @@ import pandas as pd
 import pyarrow as pa
 
 from ._polars import require_polars
-from ._read_csv import REQUIRED_COLUMNS as REQUIRED_COLUMNS
 from ._read_csv import read_fixed_columns
 from .attribute_parsing import ATTRIBUTE_PATTERN, expand_attribute_strings
+from .columns import REQUIRED_COLUMNS as REQUIRED_COLUMNS
 
 logger = logging.getLogger(__name__)
 
@@ -43,46 +43,6 @@ INTEGER_VERSION_COLUMNS = (
     "protein_version",
     "exon_version",
 )
-
-
-"""
-Columns of a GTF file:
-
-    seqname   - name of the chromosome or scaffold; chromosome names
-                without a 'chr' in Ensembl (but sometimes with a 'chr'
-                elsewhere)
-    source    - name of the program that generated this feature, or
-                the data source (database or project name)
-    feature   - feature type name.
-                Features currently in Ensembl GTFs:
-                    gene
-                    transcript
-                    exon
-                    CDS
-                    Selenocysteine
-                    start_codon
-                    stop_codon
-                    UTR
-                Older Ensembl releases may be missing some of these features.
-    start     - start position of the feature, with sequence numbering
-                starting at 1.
-    end       - end position of the feature, with sequence numbering
-                starting at 1.
-    score     - a floating point value indiciating the score of a feature
-    strand    - defined as + (forward) or - (reverse).
-    frame     - one of '0', '1' or '2'. Frame indicates the number of base pairs
-                before you encounter a full codon. '0' indicates the feature
-                begins with a whole codon. '1' indicates there is an extra
-                base (the 3rd base of the prior codon) at the start of this feature.
-                '2' indicates there are two extra bases (2nd and 3rd base of the
-                prior exon) before the first codon. All values are given with
-                relation to the 5' end.
-    attribute - a semicolon-separated list of tag-value pairs (separated by a space),
-                providing additional information about each feature. A key can be
-                repeated multiple times.
-
-(from ftp://ftp.ensembl.org/pub/release-75/gtf/homo_sapiens/README)
-"""
 
 
 def parse_with_polars_lazy(
@@ -109,10 +69,34 @@ def parse_gtf(
 ):
     """Read the fixed GTF columns, preserving raw attribute text.
 
-    If split_attributes is True, add an attribute_split list column with
-    quoted key/value pairs kept intact. Legacy semicolon cleanup is available
-    by explicitly setting fix_quotes_columns; it is disabled by default.
-    progress_callback follows read_gtf's contract and emits only the read stage.
+    Parameters
+    ----------
+    filepath_or_buffer : str, path-like, or binary/text buffer
+        GTF file (may be gzip compressed) or an open stream such as StringIO.
+
+    split_attributes : bool
+        If True, add an ``attribute_split`` list column with the quoted
+        key/value pairs of each row's attribute field kept intact.
+
+    features : set of str or None
+        Keep only rows whose ``feature`` is in this set.
+
+    fix_quotes_columns : list of str or None
+        Legacy semicolon cleanup for these columns; disabled by default.
+
+    progress_callback : callable, optional
+        Follows read_gtf's callback contract and emits only the ``read`` stage.
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per feature with the nine columns in ``REQUIRED_COLUMNS``,
+        plus ``attribute_split`` when requested.
+
+    Raises
+    ------
+    ParsingError
+        If the input is empty or a line is malformed.
     """
     if progress_callback is not None:
         progress_callback("read", 0, None)
@@ -137,7 +121,21 @@ def parse_gtf(
 
 
 def parse_gtf_pandas(*args, **kwargs):
-    """Like parse_gtf, returning pandas and reporting read/convert progress."""
+    """Like parse_gtf, also reporting a ``convert`` progress stage.
+
+    Kept for compatibility from when parse_gtf returned Polars; parse_gtf now
+    returns pandas itself, so the conversion stage does no work.
+
+    Parameters
+    ----------
+    *args, **kwargs
+        Passed to parse_gtf unchanged, including ``progress_callback``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The same frame parse_gtf returns.
+    """
     df = parse_gtf(*args, **kwargs)
     progress_callback = kwargs.get("progress_callback")
     if progress_callback is not None:

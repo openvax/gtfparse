@@ -9,20 +9,8 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.csv as pacsv
 
+from .columns import CATEGORICAL_COLUMNS, MISSING_VALUE, REQUIRED_COLUMNS
 from .parsing_error import ParsingError
-
-REQUIRED_COLUMNS = [
-    "seqname",
-    "source",
-    "feature",
-    "start",
-    "end",
-    "score",
-    "strand",
-    "frame",
-    "attribute",
-]
-CATEGORICAL_COLUMNS = ("seqname", "source", "feature", "strand")
 
 
 class _PrefixedReader:
@@ -124,7 +112,7 @@ def read_fixed_columns(source, features=None):
                 read_options=pacsv.ReadOptions(column_names=REQUIRED_COLUMNS),
                 parse_options=pacsv.ParseOptions(delimiter="\t", quote_char=False),
                 convert_options=pacsv.ConvertOptions(
-                    column_types=types, null_values=[".", ""], strings_can_be_null=True
+                    column_types=types, null_values=[MISSING_VALUE, ""], strings_can_be_null=True
                 ),
             )
     except pa.ArrowInvalid as error:
