@@ -64,10 +64,11 @@ def create_missing_features(dataframe, unique_keys={}, extra_columns={}, missing
             continue
         logger.info("Creating rows for missing feature '%s'", feature_name)
 
-        # don't include rows where the groupby key was missing
-        missing = pd.Series([x is None or x == "" for x in dataframe[groupby_key]])
-        not_missing = ~missing
-        row_groups = dataframe[not_missing].groupby(groupby_key)
+        # don't include rows where the groupby key was missing; the mask keeps
+        # the frame's own index, so filtered or re-sorted frames work (#104)
+        keys = dataframe[groupby_key]
+        has_key = keys.notna() & (keys != "")
+        row_groups = dataframe[has_key].groupby(groupby_key)
 
         # Each group corresponds to a unique feature entry for which the
         # other columns may or may not be uniquely defined. Start off by

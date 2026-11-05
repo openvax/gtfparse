@@ -82,3 +82,60 @@ def test_create_missing_features():
         },
     )
     _check_expanded_dataframe(df_extra_features)
+
+
+# A gene row without a transcript_id, then exons of two transcripts. The gene
+# row's empty transcript_id must never become a synthesized transcript.
+GENE_AND_EXONS_GTF = "".join(
+    "1\tsrc\t%s\t%d\t%d\t.\t+\t.\t%s\n" % row
+    for row in [
+        ("gene", 100, 500, 'gene_id "G1";'),
+        ("exon", 100, 200, 'gene_id "G1"; transcript_id "T1";'),
+        ("exon", 300, 500, 'gene_id "G1"; transcript_id "T1";'),
+        ("exon", 150, 250, 'gene_id "G1"; transcript_id "T2";'),
+    ]
+)
+
+
+def synthesized_transcript_spans(df):
+    """Return sorted (transcript_id, start, end) tuples of df's transcript rows.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Output of create_missing_features.
+
+    Returns
+    -------
+    list of tuple
+        One (transcript_id, start, end) tuple per transcript row, sorted.
+    """
+    transcripts = df[df["feature"] == "transcript"]
+    return sorted(zip(transcripts["transcript_id"], transcripts["start"], transcripts["end"]))
+
+
+def test_create_missing_features_on_filtered_frame():
+    # Filtering leaves gaps in the index, which a positional row mask can't align to.
+    df = parse_gtf_and_expand_attributes(StringIO(GENE_AND_EXONS_GTF))
+    exons = df[df["feature"] == "exon"]
+    assert list(exons.index) == [1, 2, 3]
+    result = create_missing_features(exons, unique_keys={"transcript": "transcript_id"})
+    assert synthesized_transcript_spans(result) == [("T1", 100, 500), ("T2", 150, 250)]
+
+
+def test_create_missing_features_on_reverse_sorted_frame():
+    # Reversing keeps every index label, so a positional mask would silently
+    # select the wrong rows: the gene row instead of T2's exon.
+    df = parse_gtf_and_expand_attributes(StringIO(GENE_AND_EXONS_GTF))
+    reversed_df = df.iloc[::-1]
+    assert list(reversed_df.index) == [3, 2, 1, 0]
+    result = create_missing_features(reversed_df, unique_keys={"transcript": "transcript_id"})
+    assert synthesized_transcript_spans(result) == [("T1", 100, 500), ("T2", 150, 250)]
+
+
+def test_create_missing_features_skips_null_keys():
+    df = parse_gtf_and_expand_attributes(StringIO(GENE_AND_EXONS_GTF))
+    df.loc[df["transcript_id"] == "", "transcript_id"] = None
+    assert df["transcript_id"].isna().sum() == 1
+    result = create_missing_features(df, unique_keys={"transcript": "transcript_id"})
+    assert synthesized_transcript_spans(result) == [("T1", 100, 500), ("T2", 150, 250)]
