@@ -502,17 +502,6 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#gtfparse.read_gtf.INTEGER_VERSION_COLUMNS" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        INTEGER_VERSION_COLUMNS
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#gtfparse.read_gtf.parse_with_polars_lazy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -854,17 +843,6 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#gtfparse.read_gtf.INTEGER_VERSION_COLUMNS" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        INTEGER_VERSION_COLUMNS
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#gtfparse.read_gtf.parse_with_polars_lazy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1081,7 +1059,7 @@
 <td><code>parse_gtf_and_expand_attributes()</code></td>
 </tr>
 <tr>
-<td>Request pandas output explicitly</td>
+<td>Compatibility wrapper: <code>parse_gtf()</code> plus a <code>convert</code> progress stage</td>
 <td><code>parse_gtf_pandas()</code></td>
 </tr>
 <tr>
@@ -1125,64 +1103,6 @@
 
 
 
-<div class="doc doc-object doc-attribute">
-
-
-
-<h3 id="gtfparse.read_gtf.INTEGER_VERSION_COLUMNS" class="doc doc-heading">
-            <span class="doc doc-object-name doc-attribute-name">INTEGER_VERSION_COLUMNS</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
-  </span>
-
-<a href="#gtfparse.read_gtf.INTEGER_VERSION_COLUMNS" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">INTEGER_VERSION_COLUMNS</span> <span class="o">=</span> <span class="p">(</span><span class="s1">'gene_version'</span><span class="p">,</span> <span class="s1">'transcript_version'</span><span class="p">,</span> <span class="s1">'protein_version'</span><span class="p">,</span> <span class="s1">'exon_version'</span><span class="p">)</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Columns of a GTF file:</p>
-<pre><code>seqname   - name of the chromosome or scaffold; chromosome names
-            without a 'chr' in Ensembl (but sometimes with a 'chr'
-            elsewhere)
-source    - name of the program that generated this feature, or
-            the data source (database or project name)
-feature   - feature type name.
-            Features currently in Ensembl GTFs:
-                gene
-                transcript
-                exon
-                CDS
-                Selenocysteine
-                start_codon
-                stop_codon
-                UTR
-            Older Ensembl releases may be missing some of these features.
-start     - start position of the feature, with sequence numbering
-            starting at 1.
-end       - end position of the feature, with sequence numbering
-            starting at 1.
-score     - a floating point value indiciating the score of a feature
-strand    - defined as + (forward) or - (reverse).
-frame     - one of '0', '1' or '2'. Frame indicates the number of base pairs
-            before you encounter a full codon. '0' indicates the feature
-            begins with a whole codon. '1' indicates there is an extra
-            base (the 3rd base of the prior codon) at the start of this feature.
-            '2' indicates there are two extra bases (2nd and 3rd base of the
-            prior exon) before the first codon. All values are given with
-            relation to the 5' end.
-attribute - a semicolon-separated list of tag-value pairs (separated by a space),
-            providing additional information about each feature. A key can be
-            repeated multiple times.
-</code></pre>
-<p>(from ftp://ftp.ensembl.org/pub/release-75/gtf/homo_sapiens/README)</p>
-
-    </div>
-
-</div>
-
 
 
 
@@ -1222,10 +1142,85 @@ Install <code>gtfparse[polars]</code> to use this compatibility adapter.</p>
     <div class="doc doc-contents ">
 
         <p>Read the fixed GTF columns, preserving raw attribute text.</p>
-<p>If split_attributes is True, add an attribute_split list column with
-quoted key/value pairs kept intact. Legacy semicolon cleanup is available
-by explicitly setting fix_quotes_columns; it is disabled by default.
-progress_callback follows read_gtf's contract and emits only the read stage.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+            <b><code>filepath_or_buffer</code></b>
+              (<code>str, path-like, or binary/text buffer</code>)
+          –
+          <div class="doc-md-description">
+            <p>GTF file (may be gzip compressed) or an open stream such as StringIO.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>split_attributes</code></b>
+              (<code><span title="bool">bool</span></code>, default:
+                  <code>True</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>If True, add an <code>attribute_split</code> list column with the quoted
+key/value pairs of each row's attribute field kept intact.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>features</code></b>
+              (<code>set of str or None</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Keep only rows whose <code>feature</code> is in this set.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>fix_quotes_columns</code></b>
+              (<code>list of str or None</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Legacy semicolon cleanup for these columns; disabled by default.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>progress_callback</code></b>
+              (<code><span title="callable">callable</span></code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Follows read_gtf's callback contract and emits only the <code>read</code> stage.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><span title="pandas.DataFrame">DataFrame</span></code>
+          –
+          <div class="doc-md-description">
+            <p>One row per feature with the nine columns in <code>REQUIRED_COLUMNS</code>,
+plus <code>attribute_split</code> when requested.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><a class="autorefs autorefs-internal" title="ParsingError (gtfparse.parsing_error.ParsingError)" href="#gtfparse.ParsingError">ParsingError</a></code>
+            –
+          <div class="doc-md-description">
+            <p>If the input is empty or a line is malformed.</p>
+          </div>
+        </li>
+    </ul>
 
 
     </div>
@@ -1245,7 +1240,40 @@ progress_callback follows read_gtf's contract and emits only the read stage.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Like parse_gtf, returning pandas and reporting read/convert progress.</p>
+        <p>Like parse_gtf, also reporting a <code>convert</code> progress stage.</p>
+<p>Kept for compatibility from when parse_gtf returned Polars; parse_gtf now
+returns pandas itself, so the conversion stage does no work.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+            <b><code>*args</code></b>
+          –
+          <div class="doc-md-description">
+            <p>Passed to parse_gtf unchanged, including <code>progress_callback</code>.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>**kwargs</code></b>
+          –
+          <div class="doc-md-description">
+            <p>Passed to parse_gtf unchanged, including <code>progress_callback</code>.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><span title="pandas.DataFrame">DataFrame</span></code>
+          –
+          <div class="doc-md-description">
+            <p>The same frame parse_gtf returns.</p>
+          </div>
+        </li>
+    </ul>
 
 
     </div>
@@ -1614,10 +1642,85 @@ its round-trip guarantees. Empty and missing attributes are both omitted.</p>
     <div class="doc doc-contents first">
 
         <p>Read the fixed GTF columns, preserving raw attribute text.</p>
-<p>If split_attributes is True, add an attribute_split list column with
-quoted key/value pairs kept intact. Legacy semicolon cleanup is available
-by explicitly setting fix_quotes_columns; it is disabled by default.
-progress_callback follows read_gtf's contract and emits only the read stage.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+            <b><code>filepath_or_buffer</code></b>
+              (<code>str, path-like, or binary/text buffer</code>)
+          –
+          <div class="doc-md-description">
+            <p>GTF file (may be gzip compressed) or an open stream such as StringIO.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>split_attributes</code></b>
+              (<code><span title="bool">bool</span></code>, default:
+                  <code>True</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>If True, add an <code>attribute_split</code> list column with the quoted
+key/value pairs of each row's attribute field kept intact.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>features</code></b>
+              (<code>set of str or None</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Keep only rows whose <code>feature</code> is in this set.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>fix_quotes_columns</code></b>
+              (<code>list of str or None</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Legacy semicolon cleanup for these columns; disabled by default.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>progress_callback</code></b>
+              (<code><span title="callable">callable</span></code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Follows read_gtf's callback contract and emits only the <code>read</code> stage.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><span title="pandas.DataFrame">DataFrame</span></code>
+          –
+          <div class="doc-md-description">
+            <p>One row per feature with the nine columns in <code>REQUIRED_COLUMNS</code>,
+plus <code>attribute_split</code> when requested.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><a class="autorefs autorefs-internal" title="ParsingError (gtfparse.parsing_error.ParsingError)" href="#gtfparse.ParsingError">ParsingError</a></code>
+            –
+          <div class="doc-md-description">
+            <p>If the input is empty or a line is malformed.</p>
+          </div>
+        </li>
+    </ul>
 
 
     </div>
@@ -1704,7 +1807,40 @@ values for each row (using empty strings for rows where the key didn't occur).</
 
     <div class="doc doc-contents first">
 
-        <p>Like parse_gtf, returning pandas and reporting read/convert progress.</p>
+        <p>Like parse_gtf, also reporting a <code>convert</code> progress stage.</p>
+<p>Kept for compatibility from when parse_gtf returned Polars; parse_gtf now
+returns pandas itself, so the conversion stage does no work.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+            <b><code>*args</code></b>
+          –
+          <div class="doc-md-description">
+            <p>Passed to parse_gtf unchanged, including <code>progress_callback</code>.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>**kwargs</code></b>
+          –
+          <div class="doc-md-description">
+            <p>Passed to parse_gtf unchanged, including <code>progress_callback</code>.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><span title="pandas.DataFrame">DataFrame</span></code>
+          –
+          <div class="doc-md-description">
+            <p>The same frame parse_gtf returns.</p>
+          </div>
+        </li>
+    </ul>
 
 
     </div>
@@ -1945,6 +2081,11 @@ extra rows created for missing features.</p>
               Bases: <code><span title="Exception">Exception</span></code></p>
 
 
+
+        <p>Raised when GTF input is empty or malformed.</p>
+<p>For example, a non-comment line without exactly nine tab-separated fields,
+or a fixed column (such as <code>start</code>) whose value can't be converted to the
+column's type.</p>
 
 
 
