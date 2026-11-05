@@ -1,4 +1,4 @@
-"""Execute documentation examples and compare the printed output."""
+"""Execute README and documentation examples and compare the printed output."""
 
 import contextlib
 import io
@@ -10,7 +10,7 @@ from pathlib import Path
 
 def main():
     count = 0
-    for path in sorted(Path("docs").rglob("*.md")):
+    for path in [Path("README.md"), *sorted(Path("docs").rglob("*.md"))]:
         module = types.ModuleType("docs_example_" + path.stem.replace("-", "_"))
         sys.modules[module.__name__] = module
         blocks = list(re.finditer(r"```(python|text)\n(.*?)\n```", path.read_text(), re.S))

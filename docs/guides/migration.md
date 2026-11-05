@@ -1,5 +1,8 @@
 # Version 3 migration
 
+Read this if your code was written for gtfparse 2.x, whose functions returned
+Polars DataFrames by default.
+
 `read_gtf`, `parse_gtf`, and `parse_gtf_and_expand_attributes` now return pandas
 DataFrames by default. GTF reading uses PyArrow; attribute processing and writing
 use pandas. Polars is no longer a required dependency and is imported only for

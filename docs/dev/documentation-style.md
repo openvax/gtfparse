@@ -3,6 +3,11 @@
 Follow the [PyEnsembl writing guide](https://github.com/openvax/pyensembl/blob/edd183d/docs/dev/documentation-style.md)
 and the [mhctools example](https://github.com/openvax/mhctools/tree/master/docs).
 
+`README.md` is also the PyPI page, so its links are absolute. It follows the
+layout shared by OpenVax libraries: title and badges, one paragraph on purpose
+and related libraries, then Install, Quick start (with checked output),
+Documentation (the guides in reading order), Development and License.
+
 Put installation and the first useful example on the home page. Give complete
 imports and concrete inputs, explain the result, and state prerequisites before
 the reader runs a command. Show output only when it has been checked. Label

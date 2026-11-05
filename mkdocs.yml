@@ -48,8 +48,7 @@ nav:
 - Common tasks:
   - Filter and write annotations: guides/annotations.md
   - Report parsing progress: guides/progress.md
-- Reference:
-  - API reference: reference.md
   - Version 3 migration: guides/migration.md
+- API reference: reference.md
 - Contributing:
   - Documentation style: dev/documentation-style.md
