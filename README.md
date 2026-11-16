@@ -80,6 +80,10 @@ python -m pip install -e ".[dev]"
 
 `./format.sh` applies ruff formatting.
 
+The development installer uses `python` from the active environment. Set
+`PYTHON=/path/to/python ./develop.sh` to select an interpreter explicitly;
+additional arguments are passed to pip.
+
 ## License
 
 Apache 2.0; see [LICENSE](LICENSE).
