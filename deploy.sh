@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 ./lint.sh && \
 ./test.sh && \
 python3 -m pip install --upgrade build && \
