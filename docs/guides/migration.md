@@ -28,8 +28,18 @@ Existing pandas and dictionary callers retain their output shape, fixed-column
 dtypes, attribute handling, filters, converters and progress callbacks. Applications
 that used the previous default Polars output should add `result_type="polars"`
 and install the extra, or use pandas methods. `write_gtf` accepts either frame
-type. The legacy `parse_with_polars_lazy` helper remains an optional adapter:
-it reads the file eagerly and returns a Polars LazyFrame, as before.
+type.
+
+Two 2.x compatibility wrappers are deprecated since 3.2.0. They emit a
+`DeprecationWarning` and will be removed in 4.0:
+
+- `gtfparse.read_gtf.parse_with_polars_lazy` reads the whole file eagerly
+  despite its name and then returns a Polars LazyFrame. Use
+  `read_gtf(..., result_type="polars").lazy()`, or
+  `polars.from_pandas(parse_gtf(...)).lazy()` to keep the unexpanded
+  `attribute` and `attribute_split` columns.
+- `parse_gtf_pandas` returns the same pandas DataFrame as `parse_gtf`. Use
+  `parse_gtf`.
 
 Empty or malformed GTF fields now raise `gtfparse.ParsingError`, including wrong
 field counts and invalid numeric fields. Whole comment lines are ignored;

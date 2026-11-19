@@ -44,5 +44,9 @@ input files raise `gtfparse.ParsingError`.
 ## Lower-level functions
 
 `parse_gtf` reports the `read` stage, `parse_gtf_and_expand_attributes` reports
-`read` and `attributes`, `parse_gtf_pandas` reports `read` and `convert`, and
-`expand_attribute_strings` reports only `attributes` using the same callback.
+`read` and `attributes`, and `expand_attribute_strings` reports only
+`attributes` using the same callback.
+
+`parse_gtf_pandas` is deprecated since 3.2.0 and will be removed in 4.0; it
+emits a `DeprecationWarning`. Until then it still reports `read` and `convert`.
+Its `convert` stage does no work, so use `parse_gtf` instead.
