@@ -1001,7 +1001,7 @@ their functions.</p>
 <td><code>parse_gtf_and_expand_attributes()</code></td>
 </tr>
 <tr>
-<td>Compatibility wrapper: <code>parse_gtf()</code> plus a <code>convert</code> progress stage</td>
+<td>Deprecated compatibility wrapper (removal planned for 4.0): <code>parse_gtf()</code> plus a <code>convert</code> progress stage</td>
 <td><code>parse_gtf_pandas()</code></td>
 </tr>
 <tr>
@@ -1061,9 +1061,72 @@ their functions.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Read eagerly and return an optional Polars LazyFrame.</p>
-<p>As in earlier releases, file I/O happens before this function returns.
+        <p>Deprecated: read eagerly and return an optional Polars LazyFrame.</p>
+<p>Despite its name, the whole file is read before this function returns,
+so nothing is scanned lazily. The exact equivalent is
+<code>polars.from_pandas(parse_gtf(...)).lazy()</code>, which keeps the unexpanded
+<code>attribute</code> and <code>attribute_split</code> columns this function returns. For
+attributes expanded into columns (with read_gtf's version-column casts),
+use <code>read_gtf(..., result_type="polars").lazy()</code> instead.
 Install <code>gtfparse[polars]</code> to use this compatibility adapter.</p>
+<p>Deprecated since 3.2.0; will be removed in gtfparse 4.0.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+            <b><code>filepath_or_buffer</code></b>
+          –
+          <div class="doc-md-description">
+            <p>Passed to parse_gtf unchanged.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>split_attributes</code></b>
+          –
+          <div class="doc-md-description">
+            <p>Passed to parse_gtf unchanged.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>features</code></b>
+          –
+          <div class="doc-md-description">
+            <p>Passed to parse_gtf unchanged.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>fix_quotes_columns</code></b>
+          –
+          <div class="doc-md-description">
+            <p>Passed to parse_gtf unchanged.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code>LazyFrame</code>
+          –
+          <div class="doc-md-description">
+            <p>A lazy view of the frame parse_gtf returns, already held in memory.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Warns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><span title="DeprecationWarning">DeprecationWarning</span></code>
+            –
+          <div class="doc-md-description">
+            <p>On every call.</p>
+          </div>
+        </li>
+    </ul>
 
 
     </div>
@@ -1182,9 +1245,12 @@ plus <code>attribute_split</code> when requested.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Like parse_gtf, also reporting a <code>convert</code> progress stage.</p>
+        <p>Deprecated: like parse_gtf, also reporting a <code>convert</code> progress stage.</p>
 <p>Kept for compatibility from when parse_gtf returned Polars; parse_gtf now
-returns pandas itself, so the conversion stage does no work.</p>
+returns pandas itself, so the conversion stage does no work. Use
+parse_gtf instead. The <code>convert</code> progress events are still emitted
+while this function remains.</p>
+<p>Deprecated since 3.2.0; will be removed in gtfparse 4.0.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1213,6 +1279,18 @@ returns pandas itself, so the conversion stage does no work.</p>
           –
           <div class="doc-md-description">
             <p>The same frame parse_gtf returns.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Warns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><span title="DeprecationWarning">DeprecationWarning</span></code>
+            –
+          <div class="doc-md-description">
+            <p>On every call.</p>
           </div>
         </li>
     </ul>
@@ -1749,9 +1827,12 @@ values for each row (using empty strings for rows where the key didn't occur).</
 
     <div class="doc doc-contents first">
 
-        <p>Like parse_gtf, also reporting a <code>convert</code> progress stage.</p>
+        <p>Deprecated: like parse_gtf, also reporting a <code>convert</code> progress stage.</p>
 <p>Kept for compatibility from when parse_gtf returned Polars; parse_gtf now
-returns pandas itself, so the conversion stage does no work.</p>
+returns pandas itself, so the conversion stage does no work. Use
+parse_gtf instead. The <code>convert</code> progress events are still emitted
+while this function remains.</p>
+<p>Deprecated since 3.2.0; will be removed in gtfparse 4.0.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1780,6 +1861,18 @@ returns pandas itself, so the conversion stage does no work.</p>
           –
           <div class="doc-md-description">
             <p>The same frame parse_gtf returns.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Warns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><span title="DeprecationWarning">DeprecationWarning</span></code>
+            –
+          <div class="doc-md-description">
+            <p>On every call.</p>
           </div>
         </li>
     </ul>

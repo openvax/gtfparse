@@ -703,8 +703,11 @@ result is supported; its attributes stage emits a single <code>(0, 0)</code> eve
 input files raise <code>gtfparse.ParsingError</code>.</p>
 <h2 id="lower-level-functions">Lower-level functions<a class="headerlink" href="#lower-level-functions" title="Permanent link">&para;</a></h2>
 <p><code>parse_gtf</code> reports the <code>read</code> stage, <code>parse_gtf_and_expand_attributes</code> reports
-<code>read</code> and <code>attributes</code>, <code>parse_gtf_pandas</code> reports <code>read</code> and <code>convert</code>, and
-<code>expand_attribute_strings</code> reports only <code>attributes</code> using the same callback.</p>
+<code>read</code> and <code>attributes</code>, and <code>expand_attribute_strings</code> reports only
+<code>attributes</code> using the same callback.</p>
+<p><code>parse_gtf_pandas</code> is deprecated since 3.2.0 and will be removed in 4.0; it
+emits a <code>DeprecationWarning</code>. Until then it still reports <code>read</code> and <code>convert</code>.
+Its <code>convert</code> stage does no work, so use <code>parse_gtf</code> instead.</p>
 
 
 

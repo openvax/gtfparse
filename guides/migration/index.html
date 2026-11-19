@@ -584,8 +584,20 @@ pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'gtfp
 dtypes, attribute handling, filters, converters and progress callbacks. Applications
 that used the previous default Polars output should add <code>result_type="polars"</code>
 and install the extra, or use pandas methods. <code>write_gtf</code> accepts either frame
-type. The legacy <code>parse_with_polars_lazy</code> helper remains an optional adapter:
-it reads the file eagerly and returns a Polars LazyFrame, as before.</p>
+type.</p>
+<p>Two 2.x compatibility wrappers are deprecated since 3.2.0. They emit a
+<code>DeprecationWarning</code> and will be removed in 4.0:</p>
+<ul>
+<li><code>gtfparse.read_gtf.parse_with_polars_lazy</code> reads the whole file eagerly
+  despite its name and then returns a Polars LazyFrame. The exact equivalent
+  is <code>polars.from_pandas(parse_gtf(...)).lazy()</code>, which keeps the unexpanded
+  <code>attribute</code> and <code>attribute_split</code> columns. For attributes expanded into
+  columns, with the other <code>read_gtf</code> conversions such as integer version
+  columns, use <code>read_gtf(..., result_type="polars").lazy()</code>.</li>
+<li><code>parse_gtf_pandas</code> returns the same pandas DataFrame as <code>parse_gtf</code>. Use
+  <code>parse_gtf</code>; it reports only the <code>read</code> progress stage, without the
+  <code>convert</code> events that <code>parse_gtf_pandas</code> adds.</li>
+</ul>
 <p>Empty or malformed GTF fields now raise <code>gtfparse.ParsingError</code>, including wrong
 field counts and invalid numeric fields. Whole comment lines are ignored;
 literal <code>#</code> inside attributes is preserved. Text and binary streams stay open
