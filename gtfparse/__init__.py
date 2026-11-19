@@ -24,7 +24,7 @@ from .read_gtf import (
 )
 from .write_gtf import write_gtf
 
-__version__ = "3.1.3"
+__version__ = "3.2.0"
 
 __all__ = [
     "GENCODE_BIOTYPE_ALIASES",

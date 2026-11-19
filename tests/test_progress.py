@@ -80,7 +80,6 @@ def test_progress_with_supported_inputs(kind, tmp_path):
     [
         (parse_gtf, ["read"]),
         (parse_gtf_and_expand_attributes, ["read", "attributes"]),
-        (parse_gtf_pandas, ["read", "convert"]),
     ],
 )
 def test_lower_level_progress(parser, stages):
@@ -88,6 +87,27 @@ def test_lower_level_progress(parser, stages):
     parser(StringIO(GTF), progress_callback=lambda *event: events.append(event))
     assert [event[0] for event in events[::2]] == stages
     assert all(event[1:] == (2, 2) for event in events[1::2])
+
+
+def test_parse_gtf_pandas_is_deprecated_and_keeps_convert_events():
+    events = []
+    with pytest.warns(DeprecationWarning, match="parse_gtf_pandas is deprecated") as caught:
+        result = parse_gtf_pandas(
+            StringIO(GTF), progress_callback=lambda *event: events.append(event)
+        )
+    assert len(caught) == 1
+    assert caught[0].filename == __file__
+    assert "Use parse_gtf" in str(caught[0].message)
+    assert "convert" in str(caught[0].message)
+    assert events == [("read", 0, None), ("read", 2, 2), ("convert", 0, None), ("convert", 2, 2)]
+    pd.testing.assert_frame_equal(result, parse_gtf(StringIO(GTF)))
+
+
+@pytest.mark.filterwarnings("error::DeprecationWarning")
+def test_supported_readers_do_not_emit_deprecation_warnings():
+    assert len(parse_gtf(StringIO(GTF))) == 2
+    assert len(parse_gtf_and_expand_attributes(StringIO(GTF))) == 2
+    assert len(read_gtf(StringIO(GTF))) == 2
 
 
 @pytest.mark.parametrize("rows", [0, 1, 10_000, 20_003])

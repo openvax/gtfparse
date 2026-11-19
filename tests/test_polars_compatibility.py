@@ -2,7 +2,7 @@ from io import StringIO
 
 import pytest
 
-from gtfparse import read_gtf, write_gtf
+from gtfparse import parse_gtf, read_gtf, write_gtf
 from gtfparse.read_gtf import parse_with_polars_lazy
 
 polars = pytest.importorskip("polars")
@@ -29,9 +29,9 @@ def test_repeated_reads_preserve_categoricals(result_type):
 
 
 def test_categoricals_from_separate_lazy_reads_can_join():
-    left = parse_with_polars_lazy(StringIO(GTF_TEXT))
+    left = read_gtf(StringIO(GTF_TEXT), result_type="polars").lazy()
     reversed_text = "\n".join(reversed(GTF_TEXT.splitlines())) + "\n"
-    right = parse_with_polars_lazy(StringIO(reversed_text))
+    right = read_gtf(StringIO(reversed_text), result_type="polars").lazy()
     keys = ["seqname", "source", "feature", "strand"]
     joined = left.join(right, on=keys).sort("start").collect()
 
@@ -40,6 +40,24 @@ def test_categoricals_from_separate_lazy_reads_can_join():
     assert joined["start_right"].to_list() == [10, 30]
     for key in keys:
         assert joined[key].dtype == polars.Categorical
+
+
+def test_parse_with_polars_lazy_is_deprecated():
+    with pytest.warns(DeprecationWarning, match="parse_with_polars_lazy is deprecated") as caught:
+        lazy = parse_with_polars_lazy(StringIO(GTF_TEXT), features={"exon"})
+    assert len(caught) == 1
+    assert caught[0].filename == __file__
+    assert 'result_type="polars"' in str(caught[0].message)
+    assert "polars.from_pandas(parse_gtf(...)).lazy()" in str(caught[0].message)
+    assert isinstance(lazy, polars.LazyFrame)
+    collected = lazy.collect()
+    assert collected.columns[-2:] == ["attribute", "attribute_split"]
+    assert collected["feature"].to_list() == ["exon"]
+    assert collected["attribute"].to_list() == ['gene_id "g2";']
+    from polars.testing import assert_frame_equal
+
+    expected = polars.from_pandas(parse_gtf(StringIO(GTF_TEXT), features={"exon"}))
+    assert_frame_equal(collected, expected)
 
 
 @pytest.mark.skipif(not hasattr(polars, "Categories"), reason="Requires modern Polars")
