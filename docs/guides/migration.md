@@ -34,12 +34,14 @@ Two 2.x compatibility wrappers are deprecated since 3.2.0. They emit a
 `DeprecationWarning` and will be removed in 4.0:
 
 - `gtfparse.read_gtf.parse_with_polars_lazy` reads the whole file eagerly
-  despite its name and then returns a Polars LazyFrame. Use
-  `read_gtf(..., result_type="polars").lazy()`, or
-  `polars.from_pandas(parse_gtf(...)).lazy()` to keep the unexpanded
-  `attribute` and `attribute_split` columns.
+  despite its name and then returns a Polars LazyFrame. The exact equivalent
+  is `polars.from_pandas(parse_gtf(...)).lazy()`, which keeps the unexpanded
+  `attribute` and `attribute_split` columns. For attributes expanded into
+  columns, with the other `read_gtf` conversions such as integer version
+  columns, use `read_gtf(..., result_type="polars").lazy()`.
 - `parse_gtf_pandas` returns the same pandas DataFrame as `parse_gtf`. Use
-  `parse_gtf`.
+  `parse_gtf`; it reports only the `read` progress stage, without the
+  `convert` events that `parse_gtf_pandas` adds.
 
 Empty or malformed GTF fields now raise `gtfparse.ParsingError`, including wrong
 field counts and invalid numeric fields. Whole comment lines are ignored;

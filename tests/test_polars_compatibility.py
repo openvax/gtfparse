@@ -48,11 +48,16 @@ def test_parse_with_polars_lazy_is_deprecated():
     assert len(caught) == 1
     assert caught[0].filename == __file__
     assert 'result_type="polars"' in str(caught[0].message)
+    assert "polars.from_pandas(parse_gtf(...)).lazy()" in str(caught[0].message)
     assert isinstance(lazy, polars.LazyFrame)
+    collected = lazy.collect()
+    assert collected.columns[-2:] == ["attribute", "attribute_split"]
+    assert collected["feature"].to_list() == ["exon"]
+    assert collected["attribute"].to_list() == ['gene_id "g2";']
     from polars.testing import assert_frame_equal
 
     expected = polars.from_pandas(parse_gtf(StringIO(GTF_TEXT), features={"exon"}))
-    assert_frame_equal(lazy.collect(), expected)
+    assert_frame_equal(collected, expected)
 
 
 @pytest.mark.skipif(not hasattr(polars, "Categories"), reason="Requires modern Polars")

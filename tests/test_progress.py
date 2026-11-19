@@ -98,6 +98,7 @@ def test_parse_gtf_pandas_is_deprecated_and_keeps_convert_events():
     assert len(caught) == 1
     assert caught[0].filename == __file__
     assert "Use parse_gtf" in str(caught[0].message)
+    assert "convert" in str(caught[0].message)
     assert events == [("read", 0, None), ("read", 2, 2), ("convert", 0, None), ("convert", 2, 2)]
     pd.testing.assert_frame_equal(result, parse_gtf(StringIO(GTF)))
 

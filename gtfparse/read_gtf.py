@@ -52,14 +52,14 @@ def parse_with_polars_lazy(
     """Deprecated: read eagerly and return an optional Polars LazyFrame.
 
     Despite its name, the whole file is read before this function returns,
-    so nothing is scanned lazily. Use
-    ``read_gtf(..., result_type="polars").lazy()`` instead, or
-    ``polars.from_pandas(parse_gtf(...)).lazy()`` to keep the unexpanded
-    ``attribute`` and ``attribute_split`` columns this function returns.
+    so nothing is scanned lazily. The exact equivalent is
+    ``polars.from_pandas(parse_gtf(...)).lazy()``, which keeps the unexpanded
+    ``attribute`` and ``attribute_split`` columns this function returns. For
+    attributes expanded into columns (with read_gtf's version-column casts),
+    use ``read_gtf(..., result_type="polars").lazy()`` instead.
     Install ``gtfparse[polars]`` to use this compatibility adapter.
 
-    .. deprecated:: 3.2.0
-        Will be removed in gtfparse 4.0.
+    Deprecated since 3.2.0; will be removed in gtfparse 4.0.
 
     Parameters
     ----------
@@ -76,16 +76,15 @@ def parse_with_polars_lazy(
     DeprecationWarning
         On every call.
     """
+    polars = require_polars()
     warnings.warn(
         "parse_with_polars_lazy is deprecated and will be removed in gtfparse 4.0. "
-        "It reads the whole file eagerly; use "
-        'read_gtf(..., result_type="polars").lazy(), or '
-        "polars.from_pandas(parse_gtf(...)).lazy() to keep the unexpanded "
-        "attribute columns.",
+        "It reads the whole file eagerly; the exact equivalent is "
+        "polars.from_pandas(parse_gtf(...)).lazy(). For expanded attribute "
+        'columns use read_gtf(..., result_type="polars").lazy().',
         DeprecationWarning,
         stacklevel=2,
     )
-    polars = require_polars()
     return polars.from_pandas(
         parse_gtf(filepath_or_buffer, split_attributes, features, fix_quotes_columns)
     ).lazy()
@@ -160,8 +159,7 @@ def parse_gtf_pandas(*args, **kwargs):
     parse_gtf instead. The ``convert`` progress events are still emitted
     while this function remains.
 
-    .. deprecated:: 3.2.0
-        Will be removed in gtfparse 4.0.
+    Deprecated since 3.2.0; will be removed in gtfparse 4.0.
 
     Parameters
     ----------
@@ -180,7 +178,8 @@ def parse_gtf_pandas(*args, **kwargs):
     """
     warnings.warn(
         "parse_gtf_pandas is deprecated and will be removed in gtfparse 4.0. "
-        "Use parse_gtf, which returns the same pandas DataFrame.",
+        "Use parse_gtf, which returns the same pandas DataFrame but does not "
+        "emit the no-op 'convert' progress events.",
         DeprecationWarning,
         stacklevel=2,
     )
