@@ -82,6 +82,7 @@ Do not tell the user you are "done" or that changes are "complete" until both pa
 4. **Explain Changes**: High-level summary at each step
 5. **Document Results**: Add review section to `tasks/todo.md`
 6. **Capture Lessons**: Update `tasks/lessons.md` after corrections
+7. **Clear Finished Plans**: Remove the finished plan from `tasks/todo.md` in the PR that completes it (delete the file when no plan remains)
 
 ---
 
