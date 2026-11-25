@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -637,6 +637,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#gtfparse.transcript_completeness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transcript_completeness
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gtfparse.attach_transcript_completeness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        attach_transcript_completeness
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#gtfparse.ParsingError" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -942,6 +964,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#gtfparse.transcript_completeness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transcript_completeness
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gtfparse.attach_transcript_completeness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        attach_transcript_completeness
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#gtfparse.ParsingError" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1011,6 +1055,14 @@ their functions.</p>
 <tr>
 <td>Synthesize missing parent rows explicitly</td>
 <td><code>create_missing_features()</code></td>
+</tr>
+<tr>
+<td>Summarize required-feature completeness per transcript</td>
+<td><code>transcript_completeness()</code></td>
+</tr>
+<tr>
+<td>Attach per-transcript completeness columns to a GTF frame</td>
+<td><code>attach_transcript_completeness()</code></td>
 </tr>
 </tbody>
 </table>
@@ -1375,7 +1427,7 @@ values for each row (using empty strings for rows where the key didn't occur).</
 
 
 <a href="#gtfparse.read_gtf.read_gtf" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">read_gtf</span><span class="p">(</span><span class="n">filepath_or_buffer</span><span class="p">,</span> <span class="n">expand_attribute_column</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">infer_biotype_column</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">column_converters</span><span class="o">=</span><span class="p">{},</span> <span class="n">column_cast_types</span><span class="o">=</span><span class="p">{},</span> <span class="n">usecols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">result_type</span><span class="o">=</span><span class="s1">'pandas'</span><span class="p">,</span> <span class="n">attribute_aliases</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cast_version_columns</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">progress_callback</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">read_gtf</span><span class="p">(</span><span class="n">filepath_or_buffer</span><span class="p">,</span> <span class="n">expand_attribute_column</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">infer_biotype_column</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">column_converters</span><span class="o">=</span><span class="p">{},</span> <span class="n">column_cast_types</span><span class="o">=</span><span class="p">{},</span> <span class="n">usecols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">result_type</span><span class="o">=</span><span class="s1">'pandas'</span><span class="p">,</span> <span class="n">attribute_aliases</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cast_version_columns</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">flag_incomplete_transcripts</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">progress_callback</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1501,6 +1553,22 @@ attribute columns (<code>gene_version</code>, <code>transcript_version</code>,
 <code>protein_version</code>, <code>exon_version</code>) from strings to pandas
 nullable Int64 when present. Set to False to keep them as
 strings.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>flag_incomplete_transcripts</code></b>
+              (<code><span title="bool">bool</span></code>, default:
+                  <code>False</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>When True, aggregate over rows sharing <code>transcript_id</code> and attach
+nullable boolean columns <code>has_start_codon</code>, <code>has_stop_codon</code>, and
+<code>transcript_complete</code>. A transcript with <code>CDS</code> rows is complete
+when both <code>start_codon</code> and <code>stop_codon</code> rows are present;
+non-coding transcripts (without <code>CDS</code>) are marked complete; rows
+without a <code>transcript_id</code> receive <code>pd.NA</code>. Requires
+<code>expand_attribute_column=True</code>. Defaults to False.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -2016,7 +2084,7 @@ the attribute strings.</p>
 
 
 <a href="#gtfparse.create_missing_features.create_missing_features" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">create_missing_features</span><span class="p">(</span><span class="n">dataframe</span><span class="p">,</span> <span class="n">unique_keys</span><span class="o">=</span><span class="p">{},</span> <span class="n">extra_columns</span><span class="o">=</span><span class="p">{},</span> <span class="n">missing_value</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">create_missing_features</span><span class="p">(</span><span class="n">dataframe</span><span class="p">,</span> <span class="n">unique_keys</span><span class="o">=</span><span class="p">{},</span> <span class="n">extra_columns</span><span class="o">=</span><span class="p">{},</span> <span class="n">missing_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="s1">'best_effort'</span><span class="p">,</span> <span class="n">required_attributes_per_feature</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2072,6 +2140,37 @@ dict.</p>
             <p>Which value to fill in for columns that we don't infer values for.</p>
           </div>
         </li>
+        <li class="doc-section-item field-body">
+            <b><code>strict</code></b>
+              (<code>(best_effort, warn, &#39;raise&#39;)</code>, default:
+                  <code>&#34;best_effort&#34;</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Policy when a group lacks required attributes or has inconsistent
+parent metadata (conflicting <code>seqname</code>/<code>strand</code> or missing/conflicting
+<code>extra_columns</code> values):</p>
+<ul>
+<li><code>"best_effort"</code> (default): synthesize rows with available metadata,
+  filling ambiguous or missing extra columns with <code>missing_value</code>.
+  Groups that fail <code>required_attributes_per_feature</code> are skipped.</li>
+<li><code>"warn"</code>: log a warning and skip the synthesized row.</li>
+<li><code>"raise"</code>: raise <code>ValueError</code>.</li>
+</ul>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>required_attributes_per_feature</code></b>
+              (<code>dict of str -&gt; iterable of str</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Mapping from feature name to attribute columns that must have at least
+one non-null, non-empty value among a group's child rows in order to
+synthesize that parent row. Example: <code>{"transcript": {"exon_id"}}</code>.</p>
+          </div>
+        </li>
     </ul>
 
 
@@ -2095,6 +2194,172 @@ extra rows created for missing features.</p>
 
 
   </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="gtfparse.transcript_completeness" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">transcript_completeness</span>
+
+
+<a href="#gtfparse.transcript_completeness" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">transcript_completeness</span><span class="p">(</span><span class="n">dataframe</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">required_features</span><span class="o">=</span><span class="n">DEFAULT_REQUIRED_CODING_FEATURES</span><span class="p">,</span> <span class="n">coding_feature</span><span class="o">=</span><span class="s1">'CDS'</span><span class="p">,</span> <span class="n">transcript_id_column</span><span class="o">=</span><span class="s1">'transcript_id'</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Compute per-transcript completeness of required coding features.</p>
+<p>A transcript with one or more <code>coding_feature</code> rows (default <code>"CDS"</code>)
+is considered complete when every feature named in <code>required_features</code>
+(default <code>("start_codon", "stop_codon")</code>) also appears for that
+<code>transcript_id</code>. Non-coding transcripts (those without any
+<code>coding_feature</code> row) are marked <code>transcript_complete = True</code>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+            <b><code>dataframe</code></b>
+              (<code>DataFrame or DataFrame</code>)
+          –
+          <div class="doc-md-description">
+            <p>Parsed GTF table containing <code>feature</code> and <code>transcript_id_column</code>.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>required_features</code></b>
+              (<code>sequence of str</code>, default:
+                  <code><span title="gtfparse.completeness.DEFAULT_REQUIRED_CODING_FEATURES">DEFAULT_REQUIRED_CODING_FEATURES</span></code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Feature names required whenever a transcript has <code>coding_feature</code>
+rows. Defaults to <code>("start_codon", "stop_codon")</code>.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>coding_feature</code></b>
+              (<code><span title="str">str</span></code>, default:
+                  <code>&#39;CDS&#39;</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Feature name that identifies coding transcripts. Defaults to <code>"CDS"</code>.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>transcript_id_column</code></b>
+              (<code><span title="str">str</span></code>, default:
+                  <code>&#39;transcript_id&#39;</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Column containing transcript identifiers. Defaults to
+<code>"transcript_id"</code>.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code>DataFrame</code>
+          –
+          <div class="doc-md-description">
+            <p>DataFrame indexed by non-empty <code>transcript_id</code> values with boolean
+columns <code>has_cds</code> (or <code>has_&lt;coding_feature.lower()&gt;</code>),
+<code>has_&lt;feature&gt;</code> for each feature in <code>required_features</code>, and
+<code>transcript_complete</code>.</p>
+          </div>
+        </li>
+    </ul>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="gtfparse.attach_transcript_completeness" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">attach_transcript_completeness</span>
+
+
+<a href="#gtfparse.attach_transcript_completeness" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">attach_transcript_completeness</span><span class="p">(</span><span class="n">dataframe</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">required_features</span><span class="o">=</span><span class="n">DEFAULT_REQUIRED_CODING_FEATURES</span><span class="p">,</span> <span class="n">coding_feature</span><span class="o">=</span><span class="s1">'CDS'</span><span class="p">,</span> <span class="n">transcript_id_column</span><span class="o">=</span><span class="s1">'transcript_id'</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Attach per-transcript feature completeness columns to a GTF DataFrame.</p>
+<p>Adds nullable boolean columns <code>has_&lt;feature&gt;</code> for each feature in
+<code>required_features</code> (default <code>has_start_codon</code> and <code>has_stop_codon</code>)
+plus <code>transcript_complete</code>. Rows without a <code>transcript_id</code> (such as
+<code>gene</code> rows) receive <code>pd.NA</code>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+            <b><code>dataframe</code></b>
+              (<code>DataFrame or DataFrame</code>)
+          –
+          <div class="doc-md-description">
+            <p>Parsed GTF table containing <code>feature</code> and <code>transcript_id_column</code>.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>required_features</code></b>
+              (<code>sequence of str</code>, default:
+                  <code><span title="gtfparse.completeness.DEFAULT_REQUIRED_CODING_FEATURES">DEFAULT_REQUIRED_CODING_FEATURES</span></code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Feature names required whenever a transcript has <code>coding_feature</code>
+rows. Defaults to <code>("start_codon", "stop_codon")</code>.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>coding_feature</code></b>
+              (<code><span title="str">str</span></code>, default:
+                  <code>&#39;CDS&#39;</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Feature name that identifies coding transcripts. Defaults to <code>"CDS"</code>.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>transcript_id_column</code></b>
+              (<code><span title="str">str</span></code>, default:
+                  <code>&#39;transcript_id&#39;</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Column containing transcript identifiers. Defaults to
+<code>"transcript_id"</code>.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code>DataFrame</code>
+          –
+          <div class="doc-md-description">
+            <p>Copy of <code>dataframe</code> with the completeness columns attached.</p>
+          </div>
+        </li>
+    </ul>
+
 
     </div>
 
