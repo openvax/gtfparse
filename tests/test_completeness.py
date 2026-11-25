@@ -140,3 +140,28 @@ def test_transcript_completeness_empty_and_no_transcript_id():
     ]
     attached = attach_transcript_completeness(df)
     assert pd.isna(attached["transcript_complete"].iloc[0])
+
+
+def test_transcript_completeness_edge_cases():
+    # Missing feature column raises ValueError
+    with pytest.raises(ValueError, match="feature"):
+        transcript_completeness(pd.DataFrame({"transcript_id": ["T1"]}))
+
+    # All-empty transcript_id column returns empty summary
+    df_empty_tids = pd.DataFrame({"feature": ["gene", "exon"], "transcript_id": ["", None]})
+    summary = transcript_completeness(df_empty_tids)
+    assert len(summary) == 0
+
+    # Polars-like object exposing to_pandas() works in both helpers
+    class _ToPandasWrapper:
+        def __init__(self, frame):
+            self._frame = frame
+
+        def to_pandas(self):
+            return self._frame
+
+    base = read_gtf(StringIO(MIXED_COMPLETENESS_GTF))
+    wrapped_summary = transcript_completeness(_ToPandasWrapper(base))
+    assert wrapped_summary.loc["T_COMPLETE", "transcript_complete"]
+    wrapped_attached = attach_transcript_completeness(_ToPandasWrapper(base))
+    assert "transcript_complete" in wrapped_attached.columns

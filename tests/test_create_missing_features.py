@@ -280,3 +280,76 @@ def test_create_missing_features_strict_inconsistent_parent_metadata(caplog):
             extra_columns={"transcript": {"gene_name"}},
             strict="raise",
         )
+
+
+def test_create_missing_features_strict_missing_columns_and_seqname(caplog):
+    import logging
+
+    import pytest
+
+    # Missing groupby_key column: warn skips, best_effort/raise raises
+    with caplog.at_level(logging.WARNING, logger="gtfparse.create_missing_features"):
+        warned = create_missing_features(
+            GTF_DATAFRAME,
+            unique_keys={"transcript": "no_such_key"},
+            strict="warn",
+        )
+    assert "transcript" not in set(warned["feature"])
+    assert any("no_such_key" in rec.message for rec in caplog.records)
+
+    with pytest.raises(ValueError, match="no_such_key"):
+        create_missing_features(
+            GTF_DATAFRAME,
+            unique_keys={"transcript": "no_such_key"},
+            strict="raise",
+        )
+
+    # Missing extra_columns column: warn skips, best_effort/raise raises
+    caplog.clear()
+    with caplog.at_level(logging.WARNING, logger="gtfparse.create_missing_features"):
+        warned_extra = create_missing_features(
+            GTF_DATAFRAME,
+            unique_keys={"transcript": "transcript_id"},
+            extra_columns={"transcript": {"no_such_col"}},
+            strict="warn",
+        )
+    assert "transcript" not in set(warned_extra["feature"])
+    assert any("no_such_col" in rec.message for rec in caplog.records)
+
+    with pytest.raises(ValueError, match="no_such_col"):
+        create_missing_features(
+            GTF_DATAFRAME,
+            unique_keys={"transcript": "transcript_id"},
+            extra_columns={"transcript": {"no_such_col"}},
+        )
+
+    # Inconsistent seqname + missing extra column value inside group
+    bad_gtf = "".join(
+        "%s\tsrc\texon\t%d\t%d\t.\t+\t.\t%s\n" % row
+        for row in [
+            ("1", 100, 200, 'gene_id "G1"; transcript_id "T1"; gene_name "";'),
+            ("2", 300, 400, 'gene_id "G1"; transcript_id "T1"; gene_name "";'),
+        ]
+    )
+    bad_df = parse_gtf_and_expand_attributes(StringIO(bad_gtf))
+    with pytest.raises(ValueError, match=r"inconsistent seqname.*missing extra column"):
+        create_missing_features(
+            bad_df,
+            unique_keys={"transcript": "transcript_id"},
+            extra_columns={"transcript": {"gene_name"}},
+            strict="raise",
+        )
+
+    # Polars-like wrapper object exposing to_pandas()
+    class _ToPandasWrapper:
+        def __init__(self, frame):
+            self._frame = frame
+
+        def to_pandas(self):
+            return self._frame
+
+    wrapped_result = create_missing_features(
+        _ToPandasWrapper(GTF_DATAFRAME),
+        unique_keys={"transcript": "transcript_id"},
+    )
+    assert "transcript" in set(wrapped_result["feature"])
