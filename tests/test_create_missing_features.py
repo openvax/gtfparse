@@ -1,5 +1,7 @@
 from io import StringIO
 
+import pandas as pd
+
 from gtfparse import create_missing_features, parse_gtf_and_expand_attributes
 
 # two lines from the Ensembl 54 human GTF containing only a stop_codon and
@@ -139,3 +141,142 @@ def test_create_missing_features_skips_null_keys():
     assert df["transcript_id"].isna().sum() == 1
     result = create_missing_features(df, unique_keys={"transcript": "transcript_id"})
     assert synthesized_transcript_spans(result) == [("T1", 100, 500), ("T2", 150, 250)]
+
+
+def test_create_missing_features_invalid_strict_mode():
+    import pytest
+
+    with pytest.raises(ValueError, match="strict must be one of"):
+        create_missing_features(
+            GTF_DATAFRAME,
+            unique_keys={"transcript": "transcript_id"},
+            strict="invalid",
+        )
+
+
+def test_create_missing_features_required_attributes_missing_column():
+    import logging
+
+    import pytest
+
+    # Ensembl 54 style GTF has no exon_id column at all.
+    best_effort = create_missing_features(
+        GTF_DATAFRAME,
+        unique_keys={"transcript": "transcript_id"},
+        required_attributes_per_feature={"transcript": {"exon_id"}},
+    )
+    assert "transcript" not in set(best_effort["feature"])
+
+    with pytest.raises(ValueError, match="exon_id"):
+        create_missing_features(
+            GTF_DATAFRAME,
+            unique_keys={"transcript": "transcript_id"},
+            strict="raise",
+            required_attributes_per_feature={"transcript": {"exon_id"}},
+        )
+
+    records = []
+    handler = logging.Handler()
+    handler.emit = records.append
+    gtf_logger = logging.getLogger("gtfparse.create_missing_features")
+    gtf_logger.addHandler(handler)
+    try:
+        warned = create_missing_features(
+            GTF_DATAFRAME,
+            unique_keys={"transcript": "transcript_id"},
+            strict="warn",
+            required_attributes_per_feature={"transcript": {"exon_id"}},
+        )
+    finally:
+        gtf_logger.removeHandler(handler)
+    assert "transcript" not in set(warned["feature"])
+    assert any("exon_id" in r.getMessage() for r in records)
+
+
+def test_create_missing_features_required_attributes_per_group():
+    import pytest
+
+    mixed_gtf = "".join(
+        "1\tsrc\t%s\t%d\t%d\t.\t+\t.\t%s\n" % row
+        for row in [
+            ("exon", 100, 200, 'gene_id "G1"; transcript_id "T_WITH_ID"; exon_id "E1";'),
+            ("CDS", 120, 180, 'gene_id "G1"; transcript_id "T_WITH_ID";'),
+            ("exon", 300, 400, 'gene_id "G1"; transcript_id "T_NO_ID";'),
+        ]
+    )
+    df = parse_gtf_and_expand_attributes(StringIO(mixed_gtf))
+
+    # best_effort + required_attributes synthesizes only the group with exon_id
+    filtered = create_missing_features(
+        df,
+        unique_keys={"transcript": "transcript_id"},
+        required_attributes_per_feature={"transcript": {"exon_id"}},
+    )
+    assert synthesized_transcript_spans(filtered) == [("T_WITH_ID", 100, 200)]
+
+    # warn logs and skips the group without exon_id
+    warned = create_missing_features(
+        df,
+        unique_keys={"transcript": "transcript_id"},
+        strict="warn",
+        required_attributes_per_feature={"transcript": {"exon_id"}},
+    )
+    assert synthesized_transcript_spans(warned) == [("T_WITH_ID", 100, 200)]
+
+    # raise fails on T_NO_ID
+    with pytest.raises(ValueError, match="T_NO_ID"):
+        create_missing_features(
+            df,
+            unique_keys={"transcript": "transcript_id"},
+            strict="raise",
+            required_attributes_per_feature={"transcript": {"exon_id"}},
+        )
+
+
+def test_create_missing_features_strict_inconsistent_parent_metadata(caplog):
+    import logging
+
+    import pytest
+
+    inconsistent_gtf = "".join(
+        "%s\tsrc\texon\t%d\t%d\t.\t%s\t.\t%s\n" % row
+        for row in [
+            ("1", 100, 200, "+", 'gene_id "G_OK"; transcript_id "T_OK"; gene_name "GOOD";'),
+            ("1", 300, 400, "+", 'gene_id "G_OK"; transcript_id "T_OK"; gene_name "GOOD";'),
+            ("1", 500, 600, "+", 'gene_id "G_BAD"; transcript_id "T_STRAND"; gene_name "BAD1";'),
+            ("1", 700, 800, "-", 'gene_id "G_BAD"; transcript_id "T_STRAND"; gene_name "BAD2";'),
+        ]
+    )
+    df = parse_gtf_and_expand_attributes(StringIO(inconsistent_gtf))
+
+    # Default best_effort synthesizes both and leaves ambiguous gene_name as None
+    best_effort = create_missing_features(
+        df,
+        unique_keys={"transcript": "transcript_id"},
+        extra_columns={"transcript": {"gene_name"}},
+    )
+    assert [tid for tid, _, _ in synthesized_transcript_spans(best_effort)] == ["T_OK", "T_STRAND"]
+    bad_row = best_effort[
+        (best_effort["feature"] == "transcript") & (best_effort["transcript_id"] == "T_STRAND")
+    ]
+    assert pd.isna(bad_row["gene_name"].iloc[0])
+
+    # strict="warn" skips T_STRAND and warns
+    with caplog.at_level(logging.WARNING, logger="gtfparse.create_missing_features"):
+        warned = create_missing_features(
+            df,
+            unique_keys={"transcript": "transcript_id"},
+            extra_columns={"transcript": {"gene_name"}},
+            strict="warn",
+        )
+    assert synthesized_transcript_spans(warned) == [("T_OK", 100, 400)]
+    assert any("T_STRAND" in rec.message for rec in caplog.records)
+
+    # strict="raise" raises ValueError mentioning T_STRAND
+    with pytest.raises(ValueError, match="T_STRAND"):
+        create_missing_features(
+            df,
+            unique_keys={"transcript": "transcript_id"},
+            extra_columns={"transcript": {"gene_name"}},
+            strict="raise",
+        )
