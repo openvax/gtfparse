@@ -13,6 +13,8 @@ their functions.
 | Deprecated compatibility wrapper (removal planned for 4.0): `parse_gtf()` plus a `convert` progress stage | `parse_gtf_pandas()` |
 | Expand a collection of attribute strings | `expand_attribute_strings()` |
 | Synthesize missing parent rows explicitly | `create_missing_features()` |
+| Summarize required-feature completeness per transcript | `transcript_completeness()` |
+| Attach per-transcript completeness columns to a GTF frame | `attach_transcript_completeness()` |
 
 ::: gtfparse.read_gtf
 
@@ -27,5 +29,9 @@ their functions.
 ::: gtfparse.expand_attribute_strings
 
 ::: gtfparse.create_missing_features
+
+::: gtfparse.transcript_completeness
+
+::: gtfparse.attach_transcript_completeness
 
 ::: gtfparse.ParsingError

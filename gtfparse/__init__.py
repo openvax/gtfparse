@@ -11,6 +11,7 @@
 # limitations under the License.
 
 from .attribute_parsing import expand_attribute_strings
+from .completeness import attach_transcript_completeness, transcript_completeness
 from .create_missing_features import create_missing_features
 from .parsing_error import ParsingError
 from .read_gtf import (
@@ -24,7 +25,7 @@ from .read_gtf import (
 )
 from .write_gtf import write_gtf
 
-__version__ = "3.2.0"
+__version__ = "3.3.0"
 
 __all__ = [
     "GENCODE_BIOTYPE_ALIASES",
@@ -32,11 +33,13 @@ __all__ = [
     "REQUIRED_COLUMNS",
     "ParsingError",
     "__version__",
+    "attach_transcript_completeness",
     "create_missing_features",
     "expand_attribute_strings",
     "parse_gtf",
     "parse_gtf_and_expand_attributes",
     "parse_gtf_pandas",
     "read_gtf",
+    "transcript_completeness",
     "write_gtf",
 ]

@@ -21,6 +21,10 @@ from ._polars import require_polars
 from ._read_csv import read_fixed_columns
 from .attribute_parsing import ATTRIBUTE_PATTERN, expand_attribute_strings
 from .columns import REQUIRED_COLUMNS as REQUIRED_COLUMNS
+from .completeness import (
+    DEFAULT_REQUIRED_CODING_FEATURES,
+    attach_transcript_completeness,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -363,6 +367,7 @@ def read_gtf(
     attribute_aliases=None,
     cast_version_columns=True,
     *,
+    flag_incomplete_transcripts=False,
     progress_callback=None,
 ):
     """
@@ -420,6 +425,15 @@ def read_gtf(
         nullable Int64 when present. Set to False to keep them as
         strings.
 
+    flag_incomplete_transcripts : bool, optional
+        When True, aggregate over rows sharing ``transcript_id`` and attach
+        nullable boolean columns ``has_start_codon``, ``has_stop_codon``, and
+        ``transcript_complete``. A transcript with ``CDS`` rows is complete
+        when both ``start_codon`` and ``stop_codon`` rows are present;
+        non-coding transcripts (without ``CDS``) are marked complete; rows
+        without a ``transcript_id`` receive ``pd.NA``. Requires
+        ``expand_attribute_column=True``. Defaults to False.
+
     progress_callback : callable, optional
         Called synchronously as ``callback(stage, completed, total)``. Counts
         are rows retained after feature filtering. Stages occur in order:
@@ -435,6 +449,8 @@ def read_gtf(
         raise ValueError("result_type must be one of 'polars', 'pandas', or 'dict'")
     if result_type == "polars":
         require_polars()
+    if flag_incomplete_transcripts and not expand_attribute_column:
+        raise ValueError("flag_incomplete_transcripts=True requires expand_attribute_column=True")
     if type(filepath_or_buffer) is str and not exists(filepath_or_buffer):
         raise ValueError("GTF file does not exist: %s" % filepath_or_buffer)
 
@@ -444,12 +460,16 @@ def read_gtf(
     # time before _apply_attribute_aliases can see it. The end-of-function
     # usecols filter still narrows the result down to the canonical name.
     parse_usecols = usecols
-    if usecols is not None and attribute_aliases:
+    if usecols is not None:
         usecols_set = set(usecols)
-        parse_usecols = set(usecols_set)
-        for alias, canonical in attribute_aliases.items():
-            if canonical in usecols_set:
-                parse_usecols.add(alias)
+        expanded_usecols = set(usecols_set)
+        if attribute_aliases:
+            for alias, canonical in attribute_aliases.items():
+                if canonical in usecols_set:
+                    expanded_usecols.add(alias)
+        if flag_incomplete_transcripts:
+            expanded_usecols.update({"feature", "transcript_id"})
+        parse_usecols = expanded_usecols if expanded_usecols != usecols_set else usecols
 
     if expand_attribute_column:
         result_df = parse_gtf_and_expand_attributes(
@@ -520,9 +540,20 @@ def read_gtf(
                 logger.info("Using column 'source' to replace missing 'transcript_biotype'")
                 result_df["transcript_biotype"] = result_df["source"]
 
+    if flag_incomplete_transcripts:
+        result_df = attach_transcript_completeness(result_df)
+
     if usecols is not None:
         column_names = set(result_df.columns)
-        valid_columns = [c for c in usecols if c in column_names]
+        requested = list(usecols)
+        if flag_incomplete_transcripts:
+            for col in (
+                *(f"has_{feat.lower()}" for feat in DEFAULT_REQUIRED_CODING_FEATURES),
+                "transcript_complete",
+            ):
+                if col not in requested:
+                    requested.append(col)
+        valid_columns = [c for c in requested if c in column_names]
         result_df = result_df[valid_columns]
 
     if result_type == "pandas":
